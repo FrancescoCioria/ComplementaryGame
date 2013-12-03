@@ -182,7 +182,9 @@ public class MainActivity extends Activity {
 				// initializeComplementary();
 				gameType = COMPLEMENTARY;
 				initializeComplementaryLevels();
-				settings(gameType);
+				startComplementary(0);
+
+				// settings(gameType);
 			}
 		});
 
@@ -435,6 +437,7 @@ public class MainActivity extends Activity {
 								break;
 
 							case 1:
+
 								complementaryDifficulty = item;
 
 								break;
@@ -730,6 +733,10 @@ public class MainActivity extends Activity {
 
 		complementaryLevels.clear();
 
+		createComplementaryLevel(new int[] { EMPTY, COLORED, EMPTY, EMPTY,
+				COLORED, EMPTY, EMPTY, COLORED, EMPTY }, new int[] {},
+				new int[] { 4 }, 3, 3);
+
 		// TUTORIAL
 		createComplementaryLevel(new int[] { EMPTY, EMPTY, COLORED, EMPTY,
 				EMPTY, COLORED, EMPTY, EMPTY, COLORED }, new int[] {},
@@ -745,11 +752,11 @@ public class MainActivity extends Activity {
 		createComplementaryLevel(new int[] { EMPTY, EMPTY, COLORED, EMPTY,
 				EMPTY, EMPTY, EMPTY, COLORED, EMPTY }, new int[] {},
 				new int[] {}, 3, 3);
-		createComplementaryLevel(new int[] { EMPTY, COLORED, EMPTY, EMPTY,
-				EMPTY, EMPTY, EMPTY, COLORED, EMPTY }, new int[] {},
-				new int[] {}, 3, 3);
 		createComplementaryLevel(new int[] { COLORED, EMPTY, EMPTY, EMPTY,
 				EMPTY, EMPTY, COLORED, EMPTY, COLORED }, new int[] {},
+				new int[] {}, 3, 3);
+		createComplementaryLevel(new int[] { EMPTY, COLORED, EMPTY, EMPTY,
+				EMPTY, EMPTY, EMPTY, COLORED, EMPTY }, new int[] {},
 				new int[] {}, 3, 3);
 		createComplementaryLevel(new int[] { COLORED, EMPTY, EMPTY, EMPTY,
 				EMPTY, EMPTY, EMPTY, EMPTY, COLORED }, new int[] {},
@@ -769,13 +776,17 @@ public class MainActivity extends Activity {
 
 		// ICE_BLOCK
 		createComplementaryLevel(new int[] { COLORED, EMPTY, EMPTY, ICE_BLOCK,
-				EMPTY, EMPTY, COLORED, COLORED, EMPTY }, new int[] {},
+				EMPTY, EMPTY, EMPTY, COLORED, EMPTY }, new int[] {},
 				new int[] {}, 3, 3);
 
 		// WALL
 		createComplementaryLevel(new int[] { EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
 				EMPTY, COLORED, COLORED, COLORED }, new int[] { 5 },
 				new int[] {}, 3, 3);
+
+		createComplementaryLevel(new int[] { EMPTY, COLORED, EMPTY, EMPTY,
+				COLORED, EMPTY, EMPTY, COLORED, EMPTY }, new int[] {},
+				new int[] { 4 }, 3, 3);
 
 	}
 
@@ -796,8 +807,8 @@ public class MainActivity extends Activity {
 			level.verticalWalls.add(vWall, 1);
 		}
 		for (int hWall : horizontalWalls) {
-			level.verticalWalls.remove(hWall);
-			level.verticalWalls.add(hWall, 1);
+			level.horizontalWalls.remove(hWall);
+			level.horizontalWalls.add(hWall, 1);
 		}
 
 		complementaryLevels.add(level);

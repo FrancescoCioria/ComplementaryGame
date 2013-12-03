@@ -13,11 +13,9 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
-import android.hardware.display.DisplayManager;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.media.SoundPool.OnLoadCompleteListener;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
@@ -163,10 +161,18 @@ public class GameView extends SurfaceView {
 	private final static int BLUE_ORANGE_GREEN = 4;
 	private final static int GREEN_RED_YELLOW = 5;
 
+	final static int EMPTY = 0;
+	final static int COLORED = 1;
+	final static int ICE_BLOCK = 2;
+	final static int ICE_BLOCK_BROKEN = 3;
+	final static int INVISIBLE = 4;
+
 	private MyBitmap plus = new MyBitmap();
 	private MyBitmap minus = new MyBitmap();
 
 	private Bitmap emptySquare;
+	private Bitmap iceBlock;
+	private Bitmap iceBlockBroken;
 	private Bitmap yellowSquare;
 	private Bitmap redSquare;
 	private Bitmap blueSquare;
@@ -247,6 +253,10 @@ public class GameView extends SurfaceView {
 
 			emptySquare = getResizedBitmap(BitmapFactory.decodeResource(
 					getResources(), R.drawable.empty_square), SIZE, SIZE);
+			iceBlock = getResizedBitmap(BitmapFactory.decodeResource(
+					getResources(), R.drawable.ice_block), SIZE, SIZE);
+			iceBlockBroken = getResizedBitmap(BitmapFactory.decodeResource(
+					getResources(), R.drawable.ice_block_broken), SIZE, SIZE);
 			yellowSquare = getResizedBitmap(BitmapFactory.decodeResource(
 					getResources(), R.drawable.yellow_square_frame), SIZE, SIZE);
 			purpleSquare = getResizedBitmap(BitmapFactory.decodeResource(
@@ -652,7 +662,7 @@ public class GameView extends SurfaceView {
 	}
 
 	private void initializeComplementary() {
-		perfectMoves=40;
+		perfectMoves = 40;
 		initializeComplementarySquareSize(getComplementaryLevel().columns,
 				getComplementaryLevel().rows);
 		initBitmaps();
@@ -663,9 +673,10 @@ public class GameView extends SurfaceView {
 		int x = MARGIN_X;
 		int y = MARGIN_Y;
 
-		// int level = 0;
 		complementarySquares.clear();
 		verticalWalls.clear();
+		horizontalWalls.clear();
+		
 		ComplementaryLevelData currentLevel = mainActivity
 				.getComplementaryLevels().get(level);
 
@@ -673,6 +684,11 @@ public class GameView extends SurfaceView {
 
 			complementarySquares.add(createComplementarySquare(x, y,
 					currentLevel.squaresType, i - 1));
+
+			if (i <= (NUMBER_SQUARES - ROWS)
+					&& currentLevel.horizontalWalls.get(i - 1) == 1) {
+				horizontalWalls.add(createHorizontalWall(x, y));
+			}
 
 			if (i % COLUMNS == 0) {
 				y = y + SIZE + GAP;
@@ -725,6 +741,10 @@ public class GameView extends SurfaceView {
 		return new VerticalWall(this, x, y, SIZE);
 	}
 
+	private HorizontalWall createHorizontalWall(float x, float y) {
+		return new HorizontalWall(this, x, y, SIZE);
+	}
+
 	private ComplementaryEndGameSquare createComplementaryEndGameSquare(
 			float x, float y, int type, int color) {
 		return new ComplementaryEndGameSquare(this, x, y, SIZE_SMALL, type,
@@ -774,6 +794,9 @@ public class GameView extends SurfaceView {
 
 				for (VerticalWall verticalWall : verticalWalls) {
 					verticalWall.onDraw(canvas);
+				}
+				for (HorizontalWall horizontalWall : horizontalWalls) {
+					horizontalWall.onDraw(canvas);
 				}
 
 				isDrawingComplementary = false;
@@ -1266,12 +1289,29 @@ public class GameView extends SurfaceView {
 		if (last == -1) {
 			return true;
 		}
+
+		// ICE_BROKEN
+		if (complementarySquares.get(z).getCurrentState() == ICE_BLOCK_BROKEN
+				&& complementaryGame.get(complementaryGame.size() - 2) != z) {
+			return false;
+		}
+
 		// DOWN
 		if (z / COLUMNS > 0 && z - COLUMNS == last) {
+			
+			if (mainActivity.getComplementaryLevels().get(level).horizontalWalls
+					.get(last) == 1) {
+				return false;
+			}
+			
 			return true;
 		}
 		// UP
 		if (z / COLUMNS < (ROWS - 1) && z + COLUMNS == last) {
+			if (mainActivity.getComplementaryLevels().get(level).horizontalWalls
+					.get(last-COLUMNS) == 1) {
+				return false;
+			}
 			return true;
 		}
 		// RIGHT
@@ -2295,6 +2335,14 @@ public class GameView extends SurfaceView {
 
 	public Bitmap getEmptySquare() {
 		return emptySquare;
+	}
+
+	public Bitmap getIceBlockSquare() {
+		return iceBlock;
+	}
+
+	public Bitmap getIceBlockBrokenSquare() {
+		return iceBlockBroken;
 	}
 
 	public ArrayList<Bitmap> getColoredSquares() {

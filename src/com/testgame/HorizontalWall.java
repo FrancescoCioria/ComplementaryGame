@@ -29,7 +29,7 @@ public class HorizontalWall {
 	}
 
 	public void onDraw(Canvas canvas) {
-
+		canvas.drawRect(x + 7, y + size - 1, x + size - 7, y + size + 21, paint);
 	}
 
 	private void update() {
