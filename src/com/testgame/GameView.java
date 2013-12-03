@@ -13,9 +13,11 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
+import android.hardware.display.DisplayManager;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.media.SoundPool.OnLoadCompleteListener;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
@@ -31,8 +33,14 @@ public class GameView extends SurfaceView {
 	private List<SequenceSquare> sequenceSquares = new ArrayList<SequenceSquare>();
 	private List<MemorySquare> memorySquares = new ArrayList<MemorySquare>();
 	private List<ComplementarySquare> complementarySquares = new ArrayList<ComplementarySquare>();
+	private List<VerticalWall> verticalWalls = new ArrayList<VerticalWall>();
+	private List<HorizontalWall> horizontalWalls = new ArrayList<HorizontalWall>();
+
 	private ArrayList<ArrayList<Integer>> ways = new ArrayList<ArrayList<Integer>>();
 	private ArrayList<ArrayList<Integer>> tempWays = new ArrayList<ArrayList<Integer>>();
+
+	private ArrayList<Bitmap> circles = new ArrayList<Bitmap>();
+	private ArrayList<Bitmap> rounds = new ArrayList<Bitmap>();
 	// private List<ComplementaryEndGameSquare> complementaryEndGameSquare = new
 	// ArrayList<ComplementaryEndGameSquare>();
 
@@ -42,6 +50,8 @@ public class GameView extends SurfaceView {
 	private static int GAP = 5;
 	private static int MARGIN_X;
 	private static int MARGIN_Y;
+	private static int MARGIN_NET_X;
+	private static int MARGIN_NET_Y;
 	private static int MARGIN_SMALL_X;
 	private static int MARGIN_SMALL_Y;
 	private static int GAP_SMALL = 10;
@@ -156,6 +166,17 @@ public class GameView extends SurfaceView {
 	private MyBitmap plus = new MyBitmap();
 	private MyBitmap minus = new MyBitmap();
 
+	private Bitmap emptySquare;
+	private Bitmap yellowSquare;
+	private Bitmap redSquare;
+	private Bitmap blueSquare;
+	private Bitmap greenSquare;
+	private Bitmap purpleSquare;
+	private Bitmap orangeSquare;
+	private ArrayList<Bitmap> coloredSquares = new ArrayList<Bitmap>();
+
+	private int lastSize = SIZE;
+
 	private int lastComplementarySquareTouched = -1;
 	int perfectMoves = 0;
 	int currentMoves = 0;
@@ -214,8 +235,32 @@ public class GameView extends SurfaceView {
 		plus.bmp = getResizedBitmap(
 				BitmapFactory.decodeResource(getResources(), R.drawable.plus),
 				RESET_SIZE / 2, RESET_SIZE / 2);
-
 		plus.X = minus.X + minus.bmp.getWidth() + PLUS_MARGIN;
+
+	}
+
+	private void initBitmaps() {
+
+		if (lastSize != SIZE) {
+
+			emptySquare = getResizedBitmap(BitmapFactory.decodeResource(
+					getResources(), R.drawable.empty_square), SIZE, SIZE);
+			yellowSquare = getResizedBitmap(BitmapFactory.decodeResource(
+					getResources(), R.drawable.yellow_square_frame), SIZE, SIZE);
+			purpleSquare = getResizedBitmap(BitmapFactory.decodeResource(
+					getResources(), R.drawable.purple_square_frame), SIZE, SIZE);
+			redSquare = getResizedBitmap(BitmapFactory.decodeResource(
+					getResources(), R.drawable.red_square_frame), SIZE, SIZE);
+			greenSquare = getResizedBitmap(BitmapFactory.decodeResource(
+					getResources(), R.drawable.green_square_frame), SIZE, SIZE);
+			blueSquare = getResizedBitmap(BitmapFactory.decodeResource(
+					getResources(), R.drawable.blue_square_frame), SIZE, SIZE);
+			orangeSquare = getResizedBitmap(BitmapFactory.decodeResource(
+					getResources(), R.drawable.orange_square_frame), SIZE, SIZE);
+
+			lastSize = SIZE;
+		}
+
 	}
 
 	public void initializeSquareSize(int columns, int rows) {
@@ -319,6 +364,15 @@ public class GameView extends SurfaceView {
 
 		// MARGIN_SMALL_X = (width - (SIZE_SMALL * COLUMNS + GAP_SMALL
 		// * (COLUMNS - 1))) / 2;
+
+		initNet();
+		// initBitmaps();
+
+	}
+
+	private void initNet() {
+		MARGIN_NET_X = MARGIN_X % SIZE;
+		MARGIN_NET_Y = MARGIN_Y % SIZE;
 
 	}
 
@@ -600,20 +654,23 @@ public class GameView extends SurfaceView {
 		complementaryGame.clear();
 		int x = MARGIN_X;
 		int y = MARGIN_Y;
-		// int xs = MARGIN_SMALL_X;
-		// int ys = MARGIN_SMALL_Y;
+
 		int level = 0;
+		boolean visible = true;
 		complementarySquares.clear();
-		// complementaryEndGameSquare.clear();
+		verticalWalls.clear();
+		ComplementaryLevelData currentLevel = mainActivity
+				.getComplementaryLevels().get(level);
+
 		for (int i = 1; i <= NUMBER_SQUARES; i++) {
-			ComplementaryLevelData currentLevel = mainActivity
-					.getComplementaryLevels().get(level);
+			if (i == 5) {
+				visible = false;
+			} else {
+				visible = true;
+			}
+
 			complementarySquares.add(createComplementarySquare(x, y,
-					currentLevel.squaresType.get(i - 1),
-					currentLevel.firstColor.get(i - 1)));
-			// complementaryEndGameSquare.add(createComplementaryEndGameSquare(xs,
-			// ys, currentLevel.squaresType.get(i - 1),
-			// currentLevel.endGame.get(i - 1)));
+					currentLevel.squaresType.get(i - 1), i - 1, visible));
 
 			if (i % COLUMNS == 0) {
 				y = y + SIZE + GAP;
@@ -622,13 +679,26 @@ public class GameView extends SurfaceView {
 				x = x + SIZE + GAP;
 			}
 
-			// if (i % COLUMNS == 0) {
-			// ys = ys + SIZE_SMALL + GAP_SMALL;
-			// /xs = MARGIN_SMALL_X;
-			// } else {
-			// xs = xs + SIZE_SMALL + GAP_SMALL;
-			// }
 		}
+
+		x = MARGIN_X;
+		y = MARGIN_Y;
+
+		for (int i = 1; i <= ROWS * (COLUMNS - 1); i++) {
+
+			if (currentLevel.verticalWalls.get(i - 1) == 1) {
+				verticalWalls.add(createVerticalWall(x, y));
+			}
+
+			if (i % (COLUMNS - 1) == 0) {
+				y = y + SIZE + GAP;
+				x = MARGIN_X;
+			} else {
+				x = x + SIZE + GAP;
+			}
+
+		}
+
 	}
 
 	private SequenceSquare createSequenceSquare(float x, float y, int color) {
@@ -644,8 +714,17 @@ public class GameView extends SurfaceView {
 	}
 
 	private ComplementarySquare createComplementarySquare(float x, float y,
-			int type, int color) {
-		return new ComplementarySquare(this, x, y, SIZE, type, color);
+			int type, int color, boolean visible) {
+		return new ComplementarySquare(this, x, y, SIZE, type, color, visible);
+	}
+
+	private VerticalWall createVerticalWall(float x, float y) {
+		return new VerticalWall(this, x, y, SIZE);
+	}
+
+	private ComplementarySquare createInvisibleComplementarySquare(float x,
+			float y, int type, int color) {
+		return new ComplementarySquare(this, x, y, SIZE, type, color, false);
 	}
 
 	private ComplementaryEndGameSquare createComplementaryEndGameSquare(
@@ -696,6 +775,11 @@ public class GameView extends SurfaceView {
 					square.onDraw(canvas);
 					i++;
 				}
+
+				for (VerticalWall verticalWall : verticalWalls) {
+					verticalWall.onDraw(canvas);
+				}
+
 				isDrawingComplementary = false;
 			}
 
@@ -704,6 +788,8 @@ public class GameView extends SurfaceView {
 			// endSquare.onDraw(canvas);
 			// }
 
+			// NET
+			// drawNet(canvas);
 			// RESET BUTTON
 			paint.setColor(Color.BLACK);
 			canvas.drawRect(RESET_MARGIN, RESET_MARGIN, RESET_MARGIN
@@ -742,6 +828,20 @@ public class GameView extends SurfaceView {
 			}
 		}
 
+	}
+
+	private void drawNet(Canvas canvas) {
+		paint.setColor(Color.WHITE);
+		int y = MARGIN_NET_Y;
+		while (y < height) {
+			canvas.drawRect(0, y, width, y + 1, paint);
+			y += SIZE;
+		}
+		int x = MARGIN_NET_X;
+		while (x < width) {
+			canvas.drawRect(x, 0, x + 1, height, paint);
+			x += SIZE;
+		}
 	}
 
 	@Override
@@ -1129,7 +1229,7 @@ public class GameView extends SurfaceView {
 				int j = 0;
 				for (ComplementarySquare square : complementarySquares) {
 					if (square.getCurrentColor() != mainActivity
-							.getComplementaryLevels().get(0).endGame.get(j)) {
+							.getComplementaryLevels().get(0).endColor) {
 						win = false;
 						break;
 					}
@@ -1163,9 +1263,38 @@ public class GameView extends SurfaceView {
 	}
 
 	private boolean isAdiacent(int z, int last) {
+		int rows = z / COLUMNS;
+		int column = z % COLUMNS;
+
+		// FIRST CHOICE
 		if (last == -1) {
 			return true;
 		}
+		// DOWN
+		if (z / COLUMNS > 0 && z - COLUMNS == last) {
+			return true;
+		}
+		// UP
+		if (z / COLUMNS < (ROWS - 1) && z + COLUMNS == last) {
+			return true;
+		}
+		// RIGHT
+		if (z % COLUMNS > 0 && z - 1 == last) {
+			if (mainActivity.getComplementaryLevels().get(0).verticalWalls
+					.get((rows * (COLUMNS - 1) + (z % COLUMNS) - 1)) == 1) {
+				return false;
+			}
+			return true;
+		}
+		// LEFT
+		if (z % COLUMNS < (COLUMNS - 1) && z + 1 == last) {
+			if (mainActivity.getComplementaryLevels().get(0).verticalWalls
+					.get(((z / COLUMNS) * (COLUMNS - 1) + (z % COLUMNS))) == 1) {
+				return false;
+			}
+			return true;
+		}
+
 		int cz = (z + 1) % COLUMNS;
 		int rz = (z + 1) / COLUMNS + 1;
 		if (cz == 0) {
@@ -1179,14 +1308,56 @@ public class GameView extends SurfaceView {
 			clast = COLUMNS;
 			rlast -= 1;
 		}
+		// LEFT
+		if (rz == rlast && (cz == clast - 1)) {
 
-		if (cz == clast && (rz == rlast + 1 || rz == rlast - 1)) {
 			return true;
 		}
-		if (rz == rlast && (cz == clast + 1 || cz == clast - 1)) {
+
+		// RIGHT
+		if (rz == rlast && cz == clast + 1) {
 			return true;
 		}
+
+		// UP
+		if (cz == clast && (rz == rlast - 1)) {
+			return true;
+		}
+
+		// DOWN
+		if (cz == clast && (rz == rlast + 1)) {
+
+			return true;
+		}
+
 		return false;
+	}
+
+	private ArrayList<Integer> getVerticalWallsBySquare(int z) {
+		ArrayList<Integer> walls = new ArrayList<Integer>();
+		int rows = z / COLUMNS;
+		int column = z % COLUMNS;
+
+		// UP
+		if (rows > 0) {
+			// walls.add(z - COLUMNS);
+		}
+		// DOWN
+		if (rows < (ROWS - 1)) {
+			// walls.add(z + COLUMNS);
+		}
+		// RIGHT
+		if (column > 0) {
+			walls.add(mainActivity.getComplementaryLevels().get(0).verticalWalls
+					.get((rows * (COLUMNS - 1) + (column))));
+		}
+		// LEFT
+		if (column < (COLUMNS - 1)) {
+			walls.add(mainActivity.getComplementaryLevels().get(0).verticalWalls
+					.get((rows * (COLUMNS - 1) + (column - 1))));
+		}
+
+		return walls;
 	}
 
 	private ArrayList<Integer> getAdiacents(int z, int beforeLast) {
@@ -1397,6 +1568,7 @@ public class GameView extends SurfaceView {
 	public int getLevel() {
 		return mainActivity.getLevel();
 	}
+
 	public ComplementaryLevelData getComplementaryLevel() {
 		return mainActivity.getComplementaryLevels().get(0);
 	}
@@ -1625,23 +1797,27 @@ public class GameView extends SurfaceView {
 			ArrayList<Integer> colors = new ArrayList<Integer>();
 
 			initializeComplementarySquareSize(columns, rows);
+			initBitmaps();
+
 			ComplementaryLevelData level = new ComplementaryLevelData();
 			int difficulty = mainActivity.getComplementaryDifficulty();
 
 			int type = rnd.nextInt(3) + difficulty * 3;
 			int color = 0;
+
 			colors = initializeColors(type);
+			initializeSquareColors(type);
 
 			int tempBackground = BACKGROUND;
 			while (tempBackground == BACKGROUND) {
 				color = rnd.nextInt(2 + difficulty);
 				setGameBackgroundColor(type, color);
 			}
+			level.endColor = color;
 
 			for (int i = 0; i < columns * rows; i++) {
 				level.squaresType.add(type);
 				level.firstColor.add(color);
-				level.endGame.add(color);
 			}
 
 			int lenght = rnd.nextInt(5) + COLUMNS * 5;
@@ -1661,13 +1837,27 @@ public class GameView extends SurfaceView {
 
 			}
 
+			for (int counter = 0; counter < ROWS * (COLUMNS - 1); counter++) {
+				if (counter == 2) {
+					level.verticalWalls.add(1);
+				} else {
+					level.verticalWalls.add(0);
+
+				}
+			}
+
 			mainActivity.getComplementaryLevels().clear();
 			mainActivity.getComplementaryLevels().add(level);
+
 			initializeComplementary();
 			lastWin = System.currentTimeMillis();
 
-			perfectMoves = everyWay(mainActivity.getComplementaryLevels()
-					.get(0).firstColor, color, colors);
+			int moves = everyWay(
+					mainActivity.getComplementaryLevels().get(0).firstColor,
+					color, colors);
+			if (moves > 0) {
+				perfectMoves = moves + 4;
+			}
 
 		}
 
@@ -1681,318 +1871,7 @@ public class GameView extends SurfaceView {
 
 	}
 
-	/*
-	 * private void initPossibilities3x3() { ArrayList<ComplementaryLevelData>
-	 * possibilities = new ArrayList<ComplementaryLevelData>();
-	 * 
-	 * for (int q = 1; q < 20; q++) { // possibilities.clear(); for (int counter
-	 * = 0; counter < 10000; counter++) { ComplementaryLevelData level = new
-	 * ComplementaryLevelData(); int type = 1; int color = PRIMARY; for (int i =
-	 * 0; i < 9; i++) { level.squaresType.add(type);
-	 * level.firstColor.add(color); level.endGame.add(color); } int lenght = q;
-	 * int beforeLast = -1; int last; int current = last = rnd.nextInt(9);
-	 * 
-	 * if (level.firstColor.get(current) == PRIMARY) {
-	 * level.firstColor.remove(current); level.firstColor.add(current,
-	 * SECONDARY);
-	 * 
-	 * } else { level.firstColor.remove(current); level.firstColor.add(current,
-	 * PRIMARY); }
-	 * 
-	 * for (int i = 1; i < lenght; i++) {
-	 * 
-	 * while (current == last || current == beforeLast || !isAdiacent(current,
-	 * last)) { current = rnd.nextInt(9); } if (level.firstColor.get(current) ==
-	 * PRIMARY) { level.firstColor.remove(current);
-	 * level.firstColor.add(current, SECONDARY);
-	 * 
-	 * } else { level.firstColor.remove(current); level.firstColor.add(current,
-	 * PRIMARY); } beforeLast = last; last = current;
-	 * 
-	 * }
-	 * 
-	 * boolean add = true;
-	 * 
-	 * for (ComplementaryLevelData l : possibilities) { if
-	 * (l.firstColor.equals(level.firstColor)) { add = false; break; } }
-	 * 
-	 * if (add) { possibilities.add(level); }
-	 * 
-	 * // Log.i("counter",Integer.toString(q) + " " + //
-	 * Integer.toString(counter));
-	 * 
-	 * }
-	 * 
-	 * Log.i("MosquitoLabs", "possibilitˆ " + Integer.toString(q) + " " +
-	 * Integer.toString(possibilities.size()));
-	 * 
-	 * } String a = new String(); for (int x :
-	 * possibilities.get(possibilities.size() - 1).firstColor) { a +=
-	 * Integer.toString(x); a += " "; }
-	 * 
-	 * Log.i("MosquitoLabs", "difficile " + a);
-	 * 
-	 * }
-	 * 
-	 * 
-	 * 
-	 * private void findOnePerfectSolution() {
-	 * 
-	 * // SCEGLI I QUADRATI DA CUI INIZIARE int MAX = 4; // int nextSquare = 0;
-	 * int last = 0; int beforeLast = 0; int nearbySquares = 4;
-	 * 
-	 * ArrayList<Integer> startSquares = new ArrayList<Integer>();
-	 * ArrayList<Integer> nextSquares = new ArrayList<Integer>();
-	 * 
-	 * ArrayList<Integer> solve = new ArrayList<Integer>();
-	 * 
-	 * for (int i = 0; i < NUMBER_SQUARES; i++) { int x = 0; if
-	 * (mainActivity.getComplementaryLevels().get(0).firstColor.get(i) !=
-	 * mainActivity .getComplementaryLevels().get(0).endGame.get(i)) { for (int
-	 * z = 0; z < NUMBER_SQUARES; z++) { if (z != i &&
-	 * mainActivity.getComplementaryLevels().get(0).firstColor .get(z) !=
-	 * mainActivity .getComplementaryLevels().get(0).endGame .get(z) &&
-	 * isAdiacent(z, i)) { x++; } } if (x <= nearbySquares) { ArrayList<Integer>
-	 * remove = new ArrayList<Integer>(); for (int j = startSquares.size() - 1;
-	 * j >= 0; j--) { if (startSquares.get(j) > x) { remove.add(j); } } for (int
-	 * r : remove) { startSquares.remove(r); } nearbySquares = x;
-	 * startSquares.add(i);
-	 * 
-	 * } } }
-	 * 
-	 * // CERCA SOLUZIONE OTTIMA PER OGNI PUNTO DI PARTENZA for (int startSquare
-	 * : startSquares) { ways.clear(); ArrayList<Integer> w = new
-	 * ArrayList<Integer>(); w.add(startSquare); ways.add(w); solve.clear(); for
-	 * (int color : mainActivity.getComplementaryLevels().get(0).firstColor) {
-	 * solve.add(color); }
-	 * 
-	 * beforeLast = last = startSquare; invertColor(solve, last);
-	 * 
-	 * boolean finished = true; int solution = 0; for (ArrayList<Integer> way :
-	 * ways) { finished = true; solve.clear(); for (int color :
-	 * mainActivity.getComplementaryLevels().get(0).firstColor) {
-	 * solve.add(color); } for (int x : way) { invertColor(solve, x); }
-	 * 
-	 * for (int color : solve) { if (color !=
-	 * mainActivity.getComplementaryLevels().get(0).endGame .get(0)) { finished
-	 * = false; break; } } if (finished) { break; } solution++; }
-	 * 
-	 * int iterazioni = 0;
-	 * 
-	 * while (!finished && iterazioni < 18) { tempWays.clear(); for
-	 * (ArrayList<Integer> way : ways) { tempWays.add(way); } for
-	 * (ArrayList<Integer> way : tempWays) {
-	 * 
-	 * solve.clear(); for (int color :
-	 * mainActivity.getComplementaryLevels().get( 0).firstColor) {
-	 * solve.add(color); } for (int x : way) { invertColor(solve, x); }
-	 * 
-	 * beforeLast = last = way.get(way.size() - 1); if (way.size() > 1) {
-	 * beforeLast = way.get(way.size() - 2); } // SE NON COLORATO if
-	 * ((solve.get(last) == mainActivity
-	 * .getComplementaryLevels().get(0).endGame.get(0)) || (checkCicle(solve,
-	 * last, beforeLast))) { nextSquares = nextColoredSquare(solve, last,
-	 * beforeLast); if (!nextSquares.isEmpty()) { for (int n : nextSquares) {
-	 * ArrayList<Integer> tempWay = new ArrayList<Integer>(); for (int h : way)
-	 * { tempWay.add(h); } tempWay.add(n); ways.remove(0); ways.add(tempWay); }
-	 * 
-	 * } else { nextSquares = nextEmptySquare(solve, last, beforeLast); if
-	 * (!nextSquares.isEmpty()) { for (int n : nextSquares) { ArrayList<Integer>
-	 * tempWay = new ArrayList<Integer>(); for (int h : way) { tempWay.add(h); }
-	 * tempWay.add(n); ways.remove(0); ways.add(tempWay); } }
-	 * 
-	 * } }
-	 * 
-	 * // SE COLORATO
-	 * 
-	 * else { nextSquares = nextEmptySquare(solve, last, beforeLast); if
-	 * (!nextSquares.isEmpty()) { for (int n : nextSquares) { ArrayList<Integer>
-	 * tempWay = new ArrayList<Integer>(); for (int h : way) { tempWay.add(h); }
-	 * tempWay.add(n); ways.remove(0); ways.add(tempWay); } } else { nextSquares
-	 * = nextColoredSquare(solve, last, beforeLast); if (!nextSquares.isEmpty())
-	 * { for (int n : nextSquares) { ArrayList<Integer> tempWay = new
-	 * ArrayList<Integer>(); for (int h : way) { tempWay.add(h); }
-	 * tempWay.add(n); ways.remove(0); ways.add(tempWay); } } } } }
-	 * 
-	 * // CONTROLLA SE GIOCO FINITO O POSSIBILITA CICLI SEMPLICI finished =
-	 * true; solution = 0; for (ArrayList<Integer> way : ways) { finished =
-	 * true; solve.clear(); for (int color :
-	 * mainActivity.getComplementaryLevels().get( 0).firstColor) {
-	 * solve.add(color); } for (int x : way) { invertColor(solve, x); }
-	 * 
-	 * for (int color : solve) { if (color !=
-	 * mainActivity.getComplementaryLevels().get( 0).endGame.get(0)) { finished
-	 * = false; break; } } if (finished) { break; } solution++; }
-	 * 
-	 * iterazioni++; }
-	 * 
-	 * if (finished) { String a = new String(); for (int s : ways.get(solution))
-	 * { a += Integer.toString(s + 1); a += " "; }
-	 * 
-	 * Log.e("MosquitoLabs", "solution: " + a); } else { Log.e("MosquitoLabs",
-	 * "solution not found"); }
-	 * 
-	 * }
-	 * 
-	 * }
-	 * 
-	 * private ArrayList<Integer> nextColoredSquare(ArrayList<Integer> game, int
-	 * last, int beforeLast) { int nearbySquares = 4; ArrayList<Integer>
-	 * nextSquare = new ArrayList<Integer>(); ArrayList<Integer> remove = new
-	 * ArrayList<Integer>(); int i = 0; if (last % 2 == 0) { i = 1; } for (; i <
-	 * NUMBER_SQUARES && i <= last + ROWS; i += (COLUMNS - 1)) { if (i != last
-	 * && i != beforeLast && game.get(i) !=
-	 * mainActivity.getComplementaryLevels() .get(0).endGame.get(i) &&
-	 * isAdiacent(i, last)) {
-	 * 
-	 * int z = 0; if (i % 2 == 0) { z = 1; } int x = 0; for (; z <
-	 * NUMBER_SQUARES && z <= i + ROWS; z += (COLUMNS - 1)) { if (z != i && z !=
-	 * last && game.get(z) != mainActivity
-	 * .getComplementaryLevels().get(0).endGame .get(z) && isAdiacent(z, i)) {
-	 * x++; } } remove.clear(); if (x <= nearbySquares) { if (x < nearbySquares
-	 * && false) { for (int n : nextSquare) { if (n > x) { remove.add(n); } }
-	 * 
-	 * for (int g = remove.size() - 1; g >= 0; g--) {
-	 * nextSquare.remove(remove.get(g)); } } // nearbySquares = x;
-	 * nextSquare.add(i); }
-	 * 
-	 * }
-	 * 
-	 * }
-	 * 
-	 * return nextSquare; }
-	 * 
-	 * private ArrayList<Integer> nextEmptySquare(ArrayList<Integer> game, int
-	 * last, int beforeLast) { int nearbySquares = 0; ArrayList<Integer>
-	 * nextSquare = new ArrayList<Integer>(); ArrayList<Integer> remove = new
-	 * ArrayList<Integer>();
-	 * 
-	 * int i = 0; if (last % 2 == 0) { i = 1; } for (; i < NUMBER_SQUARES && i
-	 * <= last + ROWS; i += (COLUMNS - 1)) { if (i != last && i != beforeLast &&
-	 * game.get(i) == mainActivity.getComplementaryLevels()
-	 * .get(0).endGame.get(i) && isAdiacent(i, last)) {
-	 * 
-	 * int z = 0; if (i % 2 == 0) { z = 1; } int x = 0; for (; z <
-	 * NUMBER_SQUARES && z <= i; z += (COLUMNS - 1)) { if (z != i && z != last
-	 * && game.get(z) != mainActivity .getComplementaryLevels().get(0).endGame
-	 * .get(z) && isAdiacent(z, i)) { x++; } }
-	 * 
-	 * if (x >= nearbySquares) {
-	 * 
-	 * if (x > nearbySquares && false) { for (int n : nextSquare) { if (n < x) {
-	 * remove.add(n); } }
-	 * 
-	 * for (int g = remove.size() - 1; g >= 0; g--) {
-	 * nextSquare.remove(remove.get(g)); } } // nearbySquares = x;
-	 * nextSquare.add(i); }
-	 * 
-	 * }
-	 * 
-	 * }
-	 * 
-	 * return nextSquare; }
-	 * 
-	 * 
-	 * 
-	 * private boolean checkCicle(ArrayList<Integer> solve, int l, int b) { int
-	 * last = l; int beforeLast = b; ArrayList<Integer> game = new
-	 * ArrayList<Integer>(); for (int g : solve) { game.add(g); } int lenght =
-	 * 0;
-	 * 
-	 * for (int g : game) { if (g !=
-	 * mainActivity.getComplementaryLevels().get(0).endGame .get(0)) { lenght++;
-	 * } }
-	 * 
-	 * // CERCA UN COLORATO ADIACENTE int iterazioni = 0; while (iterazioni <
-	 * lenght) { ArrayList<Integer> next = nextColoredSquare(game, last,
-	 * beforeLast); if (next.isEmpty()) { return false; } else { int nextSquare
-	 * = next.get(0); beforeLast = last; last = nextSquare; invertColor(game,
-	 * nextSquare); iterazioni++;
-	 * 
-	 * }
-	 * 
-	 * }
-	 * 
-	 * for (int g : game) { if (g !=
-	 * mainActivity.getComplementaryLevels().get(0).endGame .get(0)) { return
-	 * false; } }
-	 * 
-	 * Log.e("MosquitoLabs", "simpleCicle"); return true;
-	 * 
-	 * // if (checkSimpleCicle(game)) {
-	 * 
-	 * // }
-	 * 
-	 * // CONTROLLA SEQUENZA SEMPLICE
-	 * 
-	 * }
-	 */
-
-	/*
-	 * private boolean checkSimpleCicle(ArrayList<Integer> solve) { //
-	 * solution.clear();
-	 * 
-	 * // SCEGLI UN QUADRATO DA CUI INIZIARE int MAX = 4; int nextSquare = 0;
-	 * int last = 0; int beforeLast = 0; int nearbySquares = 4;
-	 * 
-	 * for (int i = 0; i < NUMBER_SQUARES; i++) { int x = 0; if
-	 * (mainActivity.getComplementaryLevels().get(0).firstColor.get(i) !=
-	 * mainActivity .getComplementaryLevels().get(0).endGame.get(i)) { for (int
-	 * z = 0; z < NUMBER_SQUARES; z++) { if (z != i &&
-	 * mainActivity.getComplementaryLevels().get(0).firstColor .get(z) !=
-	 * mainActivity .getComplementaryLevels().get(0).endGame .get(z) &&
-	 * isAdiacent(z, i)) { x++; } } if (x < nearbySquares) { nearbySquares = x;
-	 * beforeLast = last = i; } } }
-	 * 
-	 * invertColor(solve, last); // solution.add(last); boolean finished =
-	 * false; finished = true; for (int color : solve) { if (color !=
-	 * mainActivity.getComplementaryLevels().get(0).endGame .get(0)) { finished
-	 * = false; break; } }
-	 * 
-	 * int iterazioni = 0; int max = 0; for (int color : solve) { if (color !=
-	 * mainActivity.getComplementaryLevels().get(0).endGame .get(0)) { max++; }
-	 * }
-	 * 
-	 * while (!finished && iterazioni < max) { // SE NON COLORATO if
-	 * (solve.get(last) == mainActivity.getComplementaryLevels().get(0).endGame
-	 * .get(0)) { nextSquare = nextColoredSquare(solve, last, beforeLast); if
-	 * (nextSquare > 0) { beforeLast = last; last = nextSquare; } else {
-	 * nextSquare = nextEmptySquare(solve, last, beforeLast); if (nextSquare >
-	 * 0) { beforeLast = last; last = nextSquare; } }
-	 * 
-	 * }
-	 * 
-	 * // SE COLORATO
-	 * 
-	 * else { nextSquare = nextEmptySquare(solve, last, beforeLast); if
-	 * (nextSquare > 0) { beforeLast = last; last = nextSquare; } else {
-	 * nextSquare = nextColoredSquare(solve, last, beforeLast); if (nextSquare >
-	 * 0) { beforeLast = last; last = nextSquare; } } }
-	 * 
-	 * invertColor(solve, last); // solution.add(last);
-	 * 
-	 * // CONTROLLA SE GIOCO FINITO O POSSIBILITA CICLI SEMPLICI
-	 * checkCicle(solve, last, beforeLast);
-	 * 
-	 * finished = true; for (int color : solve) { if (color !=
-	 * mainActivity.getComplementaryLevels().get(0).endGame .get(0)) { finished
-	 * = false; break; } }
-	 * 
-	 * iterazioni++;
-	 * 
-	 * }
-	 * 
-	 * return finished;
-	 * 
-	 * }
-	 * 
-	 * /*
-	 * 
-	 * // private int nextRandomEmptySquare() {
-	 * 
-	 * // }
-	 */
-	private int everyWay(ArrayList<Integer> firstColors, int endColor,
+	private int everyWay(ArrayList<Integer> firstColors, int endColo,
 			ArrayList<Integer> colors) {
 		solution.clear();
 		long sTime = System.currentTimeMillis();
@@ -2003,11 +1882,12 @@ public class GameView extends SurfaceView {
 		ArrayList<ArrayList<Integer>> solutions = new ArrayList<ArrayList<Integer>>();
 
 		int coloredSquares = 0;
-
+		int k = 0;
 		for (int color : firstColors) {
-			if (color != endColor) {
+			if (color != mainActivity.getComplementaryLevels().get(0).endColor) {
 				coloredSquares++;
 			}
+			k++;
 		}
 
 		if (coloredSquares <= 1 || coloredSquares == NUMBER_SQUARES) {
@@ -2091,10 +1971,14 @@ public class GameView extends SurfaceView {
 					}
 
 					int square = 0;
+
 					for (int sol : solve) {
-						numberOfAdiacents += getRedAdiacents(square, square,
-								solve, endColor, false).size();
-						if (endColor != sol) {
+						numberOfAdiacents += getRedAdiacents(
+								square,
+								square,
+								solve,
+								mainActivity.getComplementaryLevels().get(0).endColor, false).size();
+						if (mainActivity.getComplementaryLevels().get(0).endColor != sol) {
 							numberOfColored++;
 						}
 						square++;
@@ -2114,11 +1998,19 @@ public class GameView extends SurfaceView {
 							int c = 0;
 							int next = 0;
 							ArrayList<Integer> adiacents = getRedAdiacents(
-									last, beforeLast, solve, endColor, true);
+									last, beforeLast, solve,
+									mainActivity.getComplementaryLevels()
+											.get(0).endColor, true);
 							if (!adiacents.isEmpty()) {
 								for (int ad : adiacents) {
-									int x = getRedAdiacents(ad, last, solve,
-											endColor, false).size();
+									int x = getRedAdiacents(
+											ad,
+											last,
+											solve,
+											mainActivity
+													.getComplementaryLevels()
+													.get(0).endColor,
+											false).size();
 									if (x > numberOfColoredAdiacents) {
 										numberOfColoredAdiacents = x;
 										next = c;
@@ -2139,9 +2031,10 @@ public class GameView extends SurfaceView {
 						}
 
 					}
+					k = 0;
 					if (found) {
 						for (int sol : solve) {
-							if (endColor != sol) {
+							if (mainActivity.getComplementaryLevels().get(0).endColor != sol) {
 								found = false;
 								break;
 							}
@@ -2222,9 +2115,9 @@ public class GameView extends SurfaceView {
 
 		if (coloredSquares > 1 && coloredSquares < size) {
 			long eTime = System.currentTimeMillis();
-			Log.e("timeEnd", Long.toString(eTime - sTime) + "millis");
-			Log.e("numero mosse", Integer.toString(size));
-			Log.e("solution", a);
+			Log.i("timeEnd", Long.toString(eTime - sTime) + "millis");
+			Log.i("numero mosse", Integer.toString(size));
+			Log.i("solution", a);
 		} else {
 			return 0;
 		}
@@ -2270,16 +2163,22 @@ public class GameView extends SurfaceView {
 		case YELLOW_PURPLE:
 			colors.add(YELLOW);
 			colors.add(PURPLE);
+			coloredSquares.add(yellowSquare);
+			coloredSquares.add(purpleSquare);
 			break;
 
 		case BLUE_ORANGE:
 			colors.add(BLUE);
 			colors.add(ORANGE);
+			coloredSquares.add(blueSquare);
+			coloredSquares.add(orangeSquare);
 			break;
 
 		case GREEN_RED:
 			colors.add(GREEN);
 			colors.add(RED);
+			coloredSquares.add(greenSquare);
+			coloredSquares.add(redSquare);
 
 			break;
 
@@ -2304,11 +2203,56 @@ public class GameView extends SurfaceView {
 		return colors;
 	}
 
-	private void setGameBackgroundColor(int type, int color) {
+	private void initializeSquareColors(int type) {
+		coloredSquares.clear();
+		switch (type) {
+		case YELLOW_PURPLE:
 
+			coloredSquares.add(yellowSquare);
+			coloredSquares.add(purpleSquare);
+			break;
+
+		case BLUE_ORANGE:
+
+			coloredSquares.add(blueSquare);
+			coloredSquares.add(orangeSquare);
+			break;
+
+		case GREEN_RED:
+
+			coloredSquares.add(greenSquare);
+			coloredSquares.add(redSquare);
+
+			break;
+
+		}
+
+	}
+
+	private void setGameBackgroundColor(int type, int color) {
 		ArrayList<Integer> colors = initializeColors(type);
 		BACKGROUND = colors.get(color);
 		paint.setColor(BACKGROUND);
+	}
+
+	public int getBackgroundColor() {
+		return BACKGROUND;
+	}
+
+	public Bitmap getRound(int current) {
+		return rounds.get(current);
+	}
+
+	public Bitmap getCircle(int current) {
+		return circles.get(current);
+	}
+
+	public Bitmap getEmptySquare() {
+		return emptySquare;
+	}
+
+	public ArrayList<Bitmap> getColoredSquares() {
+		return coloredSquares;
 	}
 
 }

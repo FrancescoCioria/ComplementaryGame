@@ -317,7 +317,7 @@ public class MainActivity extends Activity {
 			}
 			level.squaresType.add(type);
 			level.firstColor.add(color);
-			level.endGame.add(end);
+			level.endColor = end;
 		}
 		complementaryLevels.add(level);
 
@@ -714,4 +714,11 @@ public class MainActivity extends Activity {
 		return complementaryDifficulty;
 	}
 
+	private void initializeComplementaryLevels(){
+		int counter = 0;
+		ComplementaryLevelData level = new ComplementaryLevelData();
+		for(counter = 0;counter < 9;counter++){
+		level.f	
+		}
+	}
 }

@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LightingColorFilter;
 import android.graphics.Paint;
 import android.graphics.Rect;
 
@@ -18,16 +19,19 @@ public class ComplementarySquare {
 
 	private boolean penultimo = false;
 	private boolean ultimo = false;
+	private boolean visible = false;
 
 	private int x;
 	private int y;
 	private int size;
+	private int square;
 	// private int primaryColor = 0;
 	// private int complementaryColor = 0;
 	private int currentColor;
 	private int complementaryType;
 
 	private Bitmap redGlossy;
+	private ArrayList<Bitmap> glossySquares = new ArrayList<Bitmap>();
 
 	private static long FPS;
 
@@ -50,21 +54,29 @@ public class ComplementarySquare {
 	private final static int YELLOW = Color.rgb(255, 200, 0);
 	private static int FRAME_COLOR = Color.WHITE;
 
+	private Bitmap emptySquare;
+	private ArrayList<Bitmap> coloredSquares = new ArrayList<Bitmap>();
+
+	private int backgroundColor = 0;
+
 	private ArrayList<Integer> colors = new ArrayList<Integer>();
 
 	public ComplementarySquare(GameView gameView, float xp, float yp, int size,
-			int complementaryType, int colorType) {
+			int complementaryType, int square, boolean visible) {
 		this.gameView = gameView;
 		this.complementaryType = complementaryType;
 		this.size = size;
+		this.square = square;
+		this.visible = visible;
 		x = (int) xp;
 		y = (int) yp;
 
 		colors.clear();
+		glossySquares.clear();
 		FPS = gameView.getFPS();
-		redGlossy = gameView.getResizedBitmap(BitmapFactory.decodeResource(
-				gameView.getResources(), R.drawable.red_glossy_square), size,
-				size);
+
+		emptySquare = gameView.getEmptySquare();
+		coloredSquares = gameView.getColoredSquares();
 
 		frame.setColor(FRAME_COLOR);
 
@@ -72,11 +84,13 @@ public class ComplementarySquare {
 		case YELLOW_PURPLE:
 			colors.add(YELLOW);
 			colors.add(PURPLE);
+
 			break;
 
 		case BLUE_ORANGE:
 			colors.add(BLUE);
 			colors.add(ORANGE);
+
 			break;
 
 		case GREEN_RED:
@@ -104,35 +118,32 @@ public class ComplementarySquare {
 			break;
 
 		}
-		currentColor = colorType;
+		currentColor = gameView.getComplementaryLevel().firstColor.get(square);
 		setColor();
+		// colorizeBitmap(coloredSquare);
 
 	}
 
 	public void onDraw(Canvas canvas) {
-		update();
+		if (visible) {
+			update();
 
-		// FRAME
+			// firstVersion(canvas);
 
-		// SQUARE
-		if (currentColor != gameView.getComplementaryLevel().endGame.get(0) && false) {
-			Rect src = new Rect(x, y, x + size, y + size);
-			Rect dst = new Rect(x, y, x + size, y + size);
-			canvas.drawBitmap(redGlossy, null, dst, null);
-		} else {
-			canvas.drawRect(x - 2, y - 2, x + size + 2, y + size + 2, frame);
-			canvas.drawRect(x, y, x + size, y + size, paint);
-		}
+			drawBitmaps(canvas);
 
-		// SMALL WHITE SQUARES
-		if (ultimo) {
-			int gap = 2 * size / 3;
-			canvas.drawRect(x + gap, y + gap, x + size - gap, y + size - gap,
-					frame);
-		} else if (penultimo) {
-			int gap = 2 * size / 5;
-			canvas.drawRect(x + gap, y + gap, x + size - gap, y + size - gap,
-					frame);
+			// alphaFrame(canvas);
+
+			// SMALL WHITE SQUARES
+			if (ultimo) {
+				int gap = 2 * size / 3;
+				canvas.drawRect(x + gap, y + gap, x + size - gap, y + size
+						- gap, frame);
+			} else if (penultimo) {
+				int gap = 2 * size / 5;
+				canvas.drawRect(x + gap, y + gap, x + size - gap, y + size
+						- gap, frame);
+			}
 		}
 
 	}
@@ -140,12 +151,88 @@ public class ComplementarySquare {
 	private void update() {
 	}
 
+	private void firstVersion(Canvas canvas) {
+		canvas.drawRect(x - 2, y - 2, x + size + 2, y + size + 2, frame);
+		canvas.drawRect(x, y, x + size, y + size, paint);
+	}
+
+	private void alphaFrame(Canvas canvas) {
+		Rect dst = new Rect(x, y, x + size, y + size);
+
+		if (false) {
+			if (currentColor != gameView.getComplementaryLevel().endColor) {
+				frame.setAlpha(255);
+				canvas.drawRect(x - 2, y - 2, x + size + 2, y + size + 2, frame);
+				canvas.drawRect(x, y, x + size, y + size, paint);
+
+				if (false) {
+					canvas.drawBitmap(gameView.getResizedBitmap(BitmapFactory
+							.decodeResource(gameView.getResources(),
+									R.drawable.green_frame), size, size), null,
+							dst, null);
+					canvas.drawBitmap(gameView.getResizedBitmap(BitmapFactory
+							.decodeResource(gameView.getResources(),
+									R.drawable.red_glossy_round), size, size),
+							null, dst, null);
+				}
+
+			} else {
+				frame.setAlpha(255);
+				// canvas.drawRect(x, y, x + size, y + size, frame);
+				canvas.drawRect(x - 2, y - 2, x + size + 2, y + size + 2, frame);
+
+				// canvas.drawBitmap(glossySquares.get(currentColor), null, dst,
+				// null);
+
+				canvas.drawRect(x, y, x + size, y + size, paint);
+			}
+		}
+	}
+
+	private void drawBitmaps(Canvas canvas) {
+		Rect dst = new Rect(x, y, x + size, y + size);
+		if (isEmpty()) {
+			paint.setAlpha(80);
+			canvas.drawBitmap(emptySquare, null, dst, paint);
+
+		} else {
+			canvas.drawBitmap(coloredSquares.get(currentColor), null, dst, null);
+
+		}
+
+	}
+
 	private void setColor() {
-		paint.setColor(colors.get(currentColor));
+
+		// paint.setColor(colors.get(currentColor));
+
+	}
+
+	private void colorizeBitmap(Bitmap bmp) {
+		nextColor();
+		int[] allpixels = new int[bmp.getHeight() * bmp.getWidth()];
+
+		bmp.getPixels(allpixels, 0, bmp.getWidth(), 0, 0, bmp.getWidth(),
+				bmp.getHeight());
+
+		int colorToReplace = bmp.getPixel(size / 2, size / 2);
+
+		for (int i = 0; i < bmp.getHeight() * bmp.getWidth(); i++) {
+
+			if (allpixels[i] == colorToReplace) {
+				allpixels[i] = colors.get(currentColor);
+			}
+		}
+
+		bmp.setPixels(allpixels, 0, bmp.getWidth(), 0, 0, bmp.getWidth(),
+				bmp.getHeight());
 	}
 
 	public boolean isCollition(float x2, float y2) {
-		return x2 > x && x2 < x + size && y2 > y && y2 < y + size;
+		if (visible) {
+			return x2 > x && x2 < x + size && y2 > y && y2 < y + size;
+		}
+		return false;
 	}
 
 	public void setPenultimo(boolean b) {
@@ -183,6 +270,14 @@ public class ComplementarySquare {
 			currentColor = colors.size() - 1;
 		}
 		setColor();
+	}
+
+	private boolean isEmpty() {
+		if (currentColor != gameView.getComplementaryLevel().endColor) {
+			return false;
+		}
+		return true;
+
 	}
 
 }
