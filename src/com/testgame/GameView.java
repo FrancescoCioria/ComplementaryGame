@@ -178,8 +178,10 @@ public class GameView extends SurfaceView {
 	private int lastSize = SIZE;
 
 	private int lastComplementarySquareTouched = -1;
-	int perfectMoves = 0;
-	int currentMoves = 0;
+	private int perfectMoves = 0;
+	private int currentMoves = 0;
+
+	private int level = 0;
 
 	public GameView(MainActivity mainActivity, int columns, int rows,
 			int gameType) {
@@ -411,8 +413,8 @@ public class GameView extends SurfaceView {
 			initializeSequence();
 			break;
 		case COMPLEMENTARY:
-			createComplementaryLevel(COLUMNS, ROWS);
-			// initializeComplementary();
+			// createComplementaryLevel(COLUMNS, ROWS);
+			initializeComplementary();
 			break;
 		}
 
@@ -650,27 +652,27 @@ public class GameView extends SurfaceView {
 	}
 
 	private void initializeComplementary() {
+		perfectMoves=40;
+		initializeComplementarySquareSize(getComplementaryLevel().columns,
+				getComplementaryLevel().rows);
+		initBitmaps();
+		initializeSquareColors(rnd.nextInt(3));
+
 		lastComplementarySquareTouched = -1;
 		complementaryGame.clear();
 		int x = MARGIN_X;
 		int y = MARGIN_Y;
 
-		int level = 0;
-		boolean visible = true;
+		// int level = 0;
 		complementarySquares.clear();
 		verticalWalls.clear();
 		ComplementaryLevelData currentLevel = mainActivity
 				.getComplementaryLevels().get(level);
 
 		for (int i = 1; i <= NUMBER_SQUARES; i++) {
-			if (i == 5) {
-				visible = false;
-			} else {
-				visible = true;
-			}
 
 			complementarySquares.add(createComplementarySquare(x, y,
-					currentLevel.squaresType.get(i - 1), i - 1, visible));
+					currentLevel.squaresType, i - 1));
 
 			if (i % COLUMNS == 0) {
 				y = y + SIZE + GAP;
@@ -714,17 +716,13 @@ public class GameView extends SurfaceView {
 	}
 
 	private ComplementarySquare createComplementarySquare(float x, float y,
-			int type, int color, boolean visible) {
-		return new ComplementarySquare(this, x, y, SIZE, type, color, visible);
+			int colorType, int squareNumber) {
+		return new ComplementarySquare(this, x, y, SIZE, colorType,
+				squareNumber);
 	}
 
 	private VerticalWall createVerticalWall(float x, float y) {
 		return new VerticalWall(this, x, y, SIZE);
-	}
-
-	private ComplementarySquare createInvisibleComplementarySquare(float x,
-			float y, int type, int color) {
-		return new ComplementarySquare(this, x, y, SIZE, type, color, false);
 	}
 
 	private ComplementaryEndGameSquare createComplementaryEndGameSquare(
@@ -768,12 +766,10 @@ public class GameView extends SurfaceView {
 
 		case COMPLEMENTARY:
 			canvas.drawColor(BACKGROUND);
-			int i = 0;
 			if (!isCreatingLevel) {
 				isDrawingComplementary = true;
 				for (ComplementarySquare square : complementarySquares) {
 					square.onDraw(canvas);
-					i++;
 				}
 
 				for (VerticalWall verticalWall : verticalWalls) {
@@ -1226,14 +1222,13 @@ public class GameView extends SurfaceView {
 
 				}
 				boolean win = true;
-				int j = 0;
 				for (ComplementarySquare square : complementarySquares) {
-					if (square.getCurrentColor() != mainActivity
-							.getComplementaryLevels().get(0).endColor) {
+					if (square.isNormal()
+							&& square.getCurrentState() != mainActivity
+									.getComplementaryLevels().get(level).endColor) {
 						win = false;
 						break;
 					}
-					j++;
 				}
 				if (win) {
 					complementaryWin(COLUMNS, ROWS);
@@ -1259,7 +1254,8 @@ public class GameView extends SurfaceView {
 		COLUMNS = columns;
 		ROWS = rows;
 		NUMBER_SQUARES = COLUMNS * ROWS;
-		createComplementaryLevel(COLUMNS, ROWS);
+		// createComplementaryLevel(COLUMNS, ROWS);
+		nextComplementaryLevel();
 	}
 
 	private boolean isAdiacent(int z, int last) {
@@ -1280,7 +1276,7 @@ public class GameView extends SurfaceView {
 		}
 		// RIGHT
 		if (z % COLUMNS > 0 && z - 1 == last) {
-			if (mainActivity.getComplementaryLevels().get(0).verticalWalls
+			if (mainActivity.getComplementaryLevels().get(level).verticalWalls
 					.get((rows * (COLUMNS - 1) + (z % COLUMNS) - 1)) == 1) {
 				return false;
 			}
@@ -1288,7 +1284,7 @@ public class GameView extends SurfaceView {
 		}
 		// LEFT
 		if (z % COLUMNS < (COLUMNS - 1) && z + 1 == last) {
-			if (mainActivity.getComplementaryLevels().get(0).verticalWalls
+			if (mainActivity.getComplementaryLevels().get(level).verticalWalls
 					.get(((z / COLUMNS) * (COLUMNS - 1) + (z % COLUMNS))) == 1) {
 				return false;
 			}
@@ -1348,12 +1344,12 @@ public class GameView extends SurfaceView {
 		}
 		// RIGHT
 		if (column > 0) {
-			walls.add(mainActivity.getComplementaryLevels().get(0).verticalWalls
+			walls.add(mainActivity.getComplementaryLevels().get(level).verticalWalls
 					.get((rows * (COLUMNS - 1) + (column))));
 		}
 		// LEFT
 		if (column < (COLUMNS - 1)) {
-			walls.add(mainActivity.getComplementaryLevels().get(0).verticalWalls
+			walls.add(mainActivity.getComplementaryLevels().get(level).verticalWalls
 					.get((rows * (COLUMNS - 1) + (column - 1))));
 		}
 
@@ -1570,7 +1566,7 @@ public class GameView extends SurfaceView {
 	}
 
 	public ComplementaryLevelData getComplementaryLevel() {
-		return mainActivity.getComplementaryLevels().get(0);
+		return mainActivity.getComplementaryLevels().get(level);
 	}
 
 	public void setAnimation(boolean b) {
@@ -1783,7 +1779,22 @@ public class GameView extends SurfaceView {
 
 	}
 
-	public void createComplementaryLevel(int columns, int rows) {
+	private void nextComplementaryLevel() {
+		isCreatingLevel = true;
+		isPlaying = false;
+		while (isDrawingComplementary) {
+		}
+		level++;
+		perfectMoves = 0;
+		currentMoves = 0;
+		initializeComplementary();
+		lastWin = System.currentTimeMillis();
+
+		isCreatingLevel = false;
+
+	}
+
+	private void createComplementaryLevel(int columns, int rows) {
 		isCreatingLevel = true;
 		isPlaying = false;
 		while (isDrawingComplementary) {
@@ -1799,7 +1810,7 @@ public class GameView extends SurfaceView {
 			initializeComplementarySquareSize(columns, rows);
 			initBitmaps();
 
-			ComplementaryLevelData level = new ComplementaryLevelData();
+			ComplementaryLevelData newLevel = new ComplementaryLevelData();
 			int difficulty = mainActivity.getComplementaryDifficulty();
 
 			int type = rnd.nextInt(3) + difficulty * 3;
@@ -1813,11 +1824,11 @@ public class GameView extends SurfaceView {
 				color = rnd.nextInt(2 + difficulty);
 				setGameBackgroundColor(type, color);
 			}
-			level.endColor = color;
+			newLevel.endColor = color;
+			newLevel.squaresType = type;
 
 			for (int i = 0; i < columns * rows; i++) {
-				level.squaresType.add(type);
-				level.firstColor.add(color);
+				newLevel.game.add(color);
 			}
 
 			int lenght = rnd.nextInt(5) + COLUMNS * 5;
@@ -1831,7 +1842,7 @@ public class GameView extends SurfaceView {
 				ArrayList<Integer> adiacents = getAdiacents(last, beforeLast);
 				current = adiacents.get(rnd.nextInt(adiacents.size()));
 
-				nextColor(level.firstColor, colors, current);
+				nextColor(newLevel.game, colors, current);
 				beforeLast = last;
 				last = current;
 
@@ -1839,21 +1850,21 @@ public class GameView extends SurfaceView {
 
 			for (int counter = 0; counter < ROWS * (COLUMNS - 1); counter++) {
 				if (counter == 2) {
-					level.verticalWalls.add(1);
+					newLevel.verticalWalls.add(1);
 				} else {
-					level.verticalWalls.add(0);
+					newLevel.verticalWalls.add(0);
 
 				}
 			}
 
 			mainActivity.getComplementaryLevels().clear();
-			mainActivity.getComplementaryLevels().add(level);
+			mainActivity.getComplementaryLevels().add(newLevel);
 
 			initializeComplementary();
 			lastWin = System.currentTimeMillis();
 
 			int moves = everyWay(
-					mainActivity.getComplementaryLevels().get(0).firstColor,
+					mainActivity.getComplementaryLevels().get(level).game,
 					color, colors);
 			if (moves > 0) {
 				perfectMoves = moves + 4;
@@ -1871,7 +1882,7 @@ public class GameView extends SurfaceView {
 
 	}
 
-	private int everyWay(ArrayList<Integer> firstColors, int endColo,
+	private int everyWay(ArrayList<Integer> game, int endColo,
 			ArrayList<Integer> colors) {
 		solution.clear();
 		long sTime = System.currentTimeMillis();
@@ -1883,8 +1894,8 @@ public class GameView extends SurfaceView {
 
 		int coloredSquares = 0;
 		int k = 0;
-		for (int color : firstColors) {
-			if (color != mainActivity.getComplementaryLevels().get(0).endColor) {
+		for (int color : game) {
+			if (color != mainActivity.getComplementaryLevels().get(level).endColor) {
 				coloredSquares++;
 			}
 			k++;
@@ -1963,7 +1974,7 @@ public class GameView extends SurfaceView {
 					ArrayList<Integer> solution = new ArrayList<Integer>();
 					ArrayList<Integer> solve = new ArrayList<Integer>();
 
-					for (int color : firstColors) {
+					for (int color : game) {
 						solve.add(color);
 					}
 					for (int s : way) {
@@ -1977,8 +1988,9 @@ public class GameView extends SurfaceView {
 								square,
 								square,
 								solve,
-								mainActivity.getComplementaryLevels().get(0).endColor, false).size();
-						if (mainActivity.getComplementaryLevels().get(0).endColor != sol) {
+								mainActivity.getComplementaryLevels()
+										.get(level).endColor, false).size();
+						if (mainActivity.getComplementaryLevels().get(level).endColor != sol) {
 							numberOfColored++;
 						}
 						square++;
@@ -2009,8 +2021,8 @@ public class GameView extends SurfaceView {
 											solve,
 											mainActivity
 													.getComplementaryLevels()
-													.get(0).endColor,
-											false).size();
+													.get(0).endColor, false)
+											.size();
 									if (x > numberOfColoredAdiacents) {
 										numberOfColoredAdiacents = x;
 										next = c;
@@ -2034,7 +2046,8 @@ public class GameView extends SurfaceView {
 					k = 0;
 					if (found) {
 						for (int sol : solve) {
-							if (mainActivity.getComplementaryLevels().get(0).endColor != sol) {
+							if (mainActivity.getComplementaryLevels()
+									.get(level).endColor != sol) {
 								found = false;
 								break;
 							}
@@ -2061,7 +2074,7 @@ public class GameView extends SurfaceView {
 						circle = true;
 						int c = 0;
 						for (int sol : solve) {
-							if (firstColors.get(c) != sol) {
+							if (game.get(c) != sol) {
 								circle = false;
 								break;
 							}
@@ -2149,8 +2162,8 @@ public class GameView extends SurfaceView {
 			lastComplementarySquareTouched = -1;
 			square.setPenultimo(false);
 			square.setUltimo(false);
-			square.setCurrentColor(mainActivity.getComplementaryLevels().get(0).firstColor
-					.get(i));
+			square.setCurrentState(mainActivity.getComplementaryLevels().get(
+					level).game.get(i));
 
 			i++;
 		}
@@ -2205,23 +2218,56 @@ public class GameView extends SurfaceView {
 
 	private void initializeSquareColors(int type) {
 		coloredSquares.clear();
+		int order = rnd.nextInt(2);
 		switch (type) {
 		case YELLOW_PURPLE:
+			switch (order) {
+			case 0:
+				BACKGROUND = YELLOW;
+				coloredSquares.add(yellowSquare);
+				coloredSquares.add(purpleSquare);
+				break;
 
-			coloredSquares.add(yellowSquare);
-			coloredSquares.add(purpleSquare);
+			case 1:
+				BACKGROUND = PURPLE;
+				coloredSquares.add(purpleSquare);
+				coloredSquares.add(yellowSquare);
+				break;
+			}
+
 			break;
 
 		case BLUE_ORANGE:
+			switch (order) {
+			case 0:
+				BACKGROUND = BLUE;
+				coloredSquares.add(blueSquare);
+				coloredSquares.add(orangeSquare);
+				break;
 
-			coloredSquares.add(blueSquare);
-			coloredSquares.add(orangeSquare);
+			case 1:
+				BACKGROUND = ORANGE;
+				coloredSquares.add(orangeSquare);
+				coloredSquares.add(blueSquare);
+				break;
+			}
+
 			break;
 
 		case GREEN_RED:
+			switch (order) {
+			case 0:
+				BACKGROUND = GREEN;
+				coloredSquares.add(greenSquare);
+				coloredSquares.add(redSquare);
+				break;
 
-			coloredSquares.add(greenSquare);
-			coloredSquares.add(redSquare);
+			case 1:
+				BACKGROUND = RED;
+				coloredSquares.add(redSquare);
+				coloredSquares.add(greenSquare);
+				break;
+			}
 
 			break;
 

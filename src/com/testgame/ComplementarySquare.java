@@ -19,7 +19,6 @@ public class ComplementarySquare {
 
 	private boolean penultimo = false;
 	private boolean ultimo = false;
-	private boolean visible = false;
 
 	private int x;
 	private int y;
@@ -27,7 +26,7 @@ public class ComplementarySquare {
 	private int square;
 	// private int primaryColor = 0;
 	// private int complementaryColor = 0;
-	private int currentColor;
+	private int currentState;
 	private int complementaryType;
 
 	private Bitmap redGlossy;
@@ -42,9 +41,15 @@ public class ComplementarySquare {
 	private final static int BLUE_ORANGE_GREEN = 4;
 	private final static int GREEN_RED_YELLOW = 5;
 
-	private final static int FIRST = 0;
-	private final static int SECOND = 1;
-	private final static int THIRD = 2;
+	final static int EMPTY = 0;
+	final static int COLORED = 1;
+	final static int ICE_BLOCK = 2;
+	final static int ICE_BLOCK_BROKEN = 3;
+	final static int INVISIBLE = 4;
+
+	private static boolean normalSquare = false;
+	private static boolean iceBlockSquare = false;
+	private static boolean invisbleSquare = false;
 
 	private final static int RED = Color.rgb(190, 0, 0);
 	private final static int GREEN = Color.rgb(0, 160, 0);
@@ -62,14 +67,34 @@ public class ComplementarySquare {
 	private ArrayList<Integer> colors = new ArrayList<Integer>();
 
 	public ComplementarySquare(GameView gameView, float xp, float yp, int size,
-			int complementaryType, int square, boolean visible) {
+			int complementaryType, int squareNumber) {
 		this.gameView = gameView;
 		this.complementaryType = complementaryType;
 		this.size = size;
-		this.square = square;
-		this.visible = visible;
+		this.square = squareNumber;
 		x = (int) xp;
 		y = (int) yp;
+
+		currentState = gameView.getComplementaryLevel().game.get(square);
+
+		switch (currentState) {
+		case EMPTY:
+		case COLORED:
+			normalSquare = true;
+			break;
+
+		case ICE_BLOCK:
+		case ICE_BLOCK_BROKEN:
+			iceBlockSquare = true;
+			break;
+
+		case INVISIBLE:
+			invisbleSquare = true;
+			break;
+
+		default:
+			break;
+		}
 
 		colors.clear();
 		glossySquares.clear();
@@ -118,14 +143,13 @@ public class ComplementarySquare {
 			break;
 
 		}
-		currentColor = gameView.getComplementaryLevel().firstColor.get(square);
 		setColor();
 		// colorizeBitmap(coloredSquare);
 
 	}
 
 	public void onDraw(Canvas canvas) {
-		if (visible) {
+		if (!invisbleSquare) {
 			update();
 
 			// firstVersion(canvas);
@@ -156,47 +180,21 @@ public class ComplementarySquare {
 		canvas.drawRect(x, y, x + size, y + size, paint);
 	}
 
-	private void alphaFrame(Canvas canvas) {
-		Rect dst = new Rect(x, y, x + size, y + size);
-
-		if (false) {
-			if (currentColor != gameView.getComplementaryLevel().endColor) {
-				frame.setAlpha(255);
-				canvas.drawRect(x - 2, y - 2, x + size + 2, y + size + 2, frame);
-				canvas.drawRect(x, y, x + size, y + size, paint);
-
-				if (false) {
-					canvas.drawBitmap(gameView.getResizedBitmap(BitmapFactory
-							.decodeResource(gameView.getResources(),
-									R.drawable.green_frame), size, size), null,
-							dst, null);
-					canvas.drawBitmap(gameView.getResizedBitmap(BitmapFactory
-							.decodeResource(gameView.getResources(),
-									R.drawable.red_glossy_round), size, size),
-							null, dst, null);
-				}
-
-			} else {
-				frame.setAlpha(255);
-				// canvas.drawRect(x, y, x + size, y + size, frame);
-				canvas.drawRect(x - 2, y - 2, x + size + 2, y + size + 2, frame);
-
-				// canvas.drawBitmap(glossySquares.get(currentColor), null, dst,
-				// null);
-
-				canvas.drawRect(x, y, x + size, y + size, paint);
-			}
-		}
-	}
-
 	private void drawBitmaps(Canvas canvas) {
 		Rect dst = new Rect(x, y, x + size, y + size);
-		if (isEmpty()) {
-			paint.setAlpha(80);
-			canvas.drawBitmap(emptySquare, null, dst, paint);
+		if (normalSquare) {
+			if (isEmpty()) {
+				paint.setAlpha(80);
+				canvas.drawBitmap(emptySquare, null, dst, paint);
 
-		} else {
-			canvas.drawBitmap(coloredSquares.get(currentColor), null, dst, null);
+			} else {
+				canvas.drawBitmap(coloredSquares.get(currentState), null, dst,
+						null);
+			}
+		}
+		if (iceBlockSquare) {
+			// creare un iceBlockSquares array coi suoi bitmap
+			canvas.drawBitmap(coloredSquares.get(currentState), null, dst, null);
 
 		}
 
@@ -208,28 +206,8 @@ public class ComplementarySquare {
 
 	}
 
-	private void colorizeBitmap(Bitmap bmp) {
-		nextColor();
-		int[] allpixels = new int[bmp.getHeight() * bmp.getWidth()];
-
-		bmp.getPixels(allpixels, 0, bmp.getWidth(), 0, 0, bmp.getWidth(),
-				bmp.getHeight());
-
-		int colorToReplace = bmp.getPixel(size / 2, size / 2);
-
-		for (int i = 0; i < bmp.getHeight() * bmp.getWidth(); i++) {
-
-			if (allpixels[i] == colorToReplace) {
-				allpixels[i] = colors.get(currentColor);
-			}
-		}
-
-		bmp.setPixels(allpixels, 0, bmp.getWidth(), 0, 0, bmp.getWidth(),
-				bmp.getHeight());
-	}
-
 	public boolean isCollition(float x2, float y2) {
-		if (visible) {
+		if (!invisbleSquare) {
 			return x2 > x && x2 < x + size && y2 > y && y2 < y + size;
 		}
 		return false;
@@ -243,41 +221,58 @@ public class ComplementarySquare {
 		ultimo = b;
 	}
 
-	public int getCurrentColor() {
-		return currentColor;
+	public int getCurrentState() {
+		return currentState;
 	}
 
-	public void setCurrentColor(int c) {
-		currentColor = c;
+	public void setCurrentState(int c) {
+		currentState = c;
 		setColor();
 	}
 
 	public void nextColor() {
 
-		if (currentColor < colors.size() - 1) {
-			currentColor++;
-		} else {
-			currentColor = 0;
+		if (normalSquare) {
+			if (currentState < colors.size() - 1) {
+				currentState++;
+			} else {
+				currentState = 0;
+			}
+		}
+		if (iceBlockSquare) {
+			if (currentState == ICE_BLOCK) {
+				currentState = ICE_BLOCK_BROKEN;
+			}
 		}
 		setColor();
 	}
 
 	public void lastColor() {
-
-		if (currentColor > 0) {
-			currentColor--;
-		} else {
-			currentColor = colors.size() - 1;
+		if (normalSquare) {
+			if (currentState > 0) {
+				currentState--;
+			} else {
+				currentState = colors.size() - 1;
+			}
+		}
+		if (iceBlockSquare) {
+			if (currentState == ICE_BLOCK_BROKEN) {
+				currentState = ICE_BLOCK;
+			}
 		}
 		setColor();
 	}
 
 	private boolean isEmpty() {
-		if (currentColor != gameView.getComplementaryLevel().endColor) {
+		if (currentState != gameView.getComplementaryLevel().endColor) {
 			return false;
 		}
 		return true;
 
+	}
+
+	public boolean isNormal() {
+		return normalSquare;
 	}
 
 }
