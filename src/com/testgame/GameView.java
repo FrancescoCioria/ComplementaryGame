@@ -171,6 +171,10 @@ public class GameView extends SurfaceView {
 	private MyBitmap minus = new MyBitmap();
 
 	private Bitmap emptySquare;
+	private Bitmap emptySquareMedium;
+	private Bitmap emptySquareSmall;
+	private Bitmap fullStar;
+	private Bitmap emptyStar;
 	private Bitmap iceBlock;
 	private Bitmap iceBlockBroken;
 	private Bitmap yellowSquare;
@@ -200,6 +204,7 @@ public class GameView extends SurfaceView {
 		COLUMNS = columns;
 		ROWS = rows;
 		NUMBER_SQUARES = COLUMNS * ROWS;
+		lastSize = SIZE = 100;
 
 		initButtons();
 		initSound();
@@ -253,6 +258,16 @@ public class GameView extends SurfaceView {
 
 			emptySquare = getResizedBitmap(BitmapFactory.decodeResource(
 					getResources(), R.drawable.empty_square), SIZE, SIZE);
+			emptySquareMedium = getResizedBitmap(BitmapFactory.decodeResource(
+					getResources(), R.drawable.empty_square), SIZE / 3,
+					SIZE / 3);
+			emptySquareSmall = getResizedBitmap(BitmapFactory.decodeResource(
+					getResources(), R.drawable.empty_square), SIZE / 5,
+					SIZE / 5);
+			emptyStar = getResizedBitmap(BitmapFactory.decodeResource(
+					getResources(), R.drawable.empty_star), SIZE, SIZE);
+			fullStar = getResizedBitmap(BitmapFactory.decodeResource(
+					getResources(), R.drawable.full_star), SIZE, SIZE);
 			iceBlock = getResizedBitmap(BitmapFactory.decodeResource(
 					getResources(), R.drawable.ice_block), SIZE, SIZE);
 			iceBlockBroken = getResizedBitmap(BitmapFactory.decodeResource(
@@ -676,7 +691,7 @@ public class GameView extends SurfaceView {
 		complementarySquares.clear();
 		verticalWalls.clear();
 		horizontalWalls.clear();
-		
+
 		ComplementaryLevelData currentLevel = mainActivity
 				.getComplementaryLevels().get(level);
 
@@ -1271,8 +1286,9 @@ public class GameView extends SurfaceView {
 
 	private void complementaryWin(int columns, int rows) {
 		sound(DING);
-		if (perfectMoves == currentMoves) {
-			Toast.makeText(mainActivity, "PERFECT", Toast.LENGTH_SHORT).show();
+		int star = getComplementaryLevel().star;
+		if (star >= 0 && complementarySquares.get(star).hasTakenStar()) {
+			Toast.makeText(mainActivity, "STAR!", Toast.LENGTH_SHORT).show();
 		}
 		COLUMNS = columns;
 		ROWS = rows;
@@ -1298,18 +1314,18 @@ public class GameView extends SurfaceView {
 
 		// DOWN
 		if (z / COLUMNS > 0 && z - COLUMNS == last) {
-			
+
 			if (mainActivity.getComplementaryLevels().get(level).horizontalWalls
 					.get(last) == 1) {
 				return false;
 			}
-			
+
 			return true;
 		}
 		// UP
 		if (z / COLUMNS < (ROWS - 1) && z + COLUMNS == last) {
 			if (mainActivity.getComplementaryLevels().get(level).horizontalWalls
-					.get(last-COLUMNS) == 1) {
+					.get(last - COLUMNS) == 1) {
 				return false;
 			}
 			return true;
@@ -2202,6 +2218,7 @@ public class GameView extends SurfaceView {
 			lastComplementarySquareTouched = -1;
 			square.setPenultimo(false);
 			square.setUltimo(false);
+			square.setHasTakenStar(false);
 			square.setCurrentState(mainActivity.getComplementaryLevels().get(
 					level).game.get(i));
 
@@ -2335,6 +2352,22 @@ public class GameView extends SurfaceView {
 
 	public Bitmap getEmptySquare() {
 		return emptySquare;
+	}
+
+	public Bitmap getEmptySquareMedium() {
+		return emptySquareMedium;
+	}
+
+	public Bitmap getEmptySquareSmall() {
+		return emptySquareSmall;
+	}
+
+	public Bitmap getEmptyStar() {
+		return emptyStar;
+	}
+
+	public Bitmap getFullStar() {
+		return fullStar;
 	}
 
 	public Bitmap getIceBlockSquare() {

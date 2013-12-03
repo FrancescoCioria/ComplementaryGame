@@ -24,6 +24,7 @@ public class ComplementarySquare {
 	private int y;
 	private int size;
 	private int square;
+	private int counter = 0;
 	// private int primaryColor = 0;
 	// private int complementaryColor = 0;
 	private int currentState;
@@ -47,7 +48,8 @@ public class ComplementarySquare {
 	final static int ICE_BLOCK_BROKEN = 3;
 	final static int INVISIBLE = 4;
 
-	
+	final static int EMPTY_STAR = 0;
+	final static int FULL_STAR = 1;
 
 	private final static int RED = Color.rgb(190, 0, 0);
 	private final static int GREEN = Color.rgb(0, 160, 0);
@@ -57,9 +59,16 @@ public class ComplementarySquare {
 	private final static int YELLOW = Color.rgb(255, 200, 0);
 	private static int FRAME_COLOR = Color.WHITE;
 
+	private boolean isStar = false;
+	private boolean hasTakenStar = false;
+
 	private Bitmap emptySquare;
+	private Bitmap emptySquareMedium;
+	private Bitmap emptySquareSmall;
 	private Bitmap iceBlock;
 	private Bitmap iceBlockBroken;
+	private Bitmap fullStar;
+	private Bitmap emptyStar;
 	private ArrayList<Bitmap> coloredSquares = new ArrayList<Bitmap>();
 
 	private int backgroundColor = 0;
@@ -77,13 +86,19 @@ public class ComplementarySquare {
 
 		currentState = gameView.getComplementaryLevel().game.get(square);
 
-		
+		if (gameView.getComplementaryLevel().star == square) {
+			isStar = true;
+		}
 
 		colors.clear();
 		glossySquares.clear();
 		FPS = gameView.getFPS();
 
 		emptySquare = gameView.getEmptySquare();
+		emptySquareMedium = gameView.getEmptySquareMedium();
+		emptySquareSmall = gameView.getEmptySquareSmall();
+		emptyStar = gameView.getEmptyStar();
+		fullStar = gameView.getFullStar();
 		iceBlock = gameView.getIceBlockSquare();
 		iceBlockBroken = gameView.getIceBlockBrokenSquare();
 		coloredSquares = gameView.getColoredSquares();
@@ -144,15 +159,7 @@ public class ComplementarySquare {
 			// alphaFrame(canvas);
 
 			// SMALL WHITE SQUARES
-			if (ultimo) {
-				int gap = 2 * size / 3;
-				canvas.drawRect(x + gap, y + gap, x + size - gap, y + size
-						- gap, frame);
-			} else if (penultimo) {
-				int gap = 2 * size / 5;
-				canvas.drawRect(x + gap, y + gap, x + size - gap, y + size
-						- gap, frame);
-			}
+
 		}
 
 	}
@@ -163,10 +170,22 @@ public class ComplementarySquare {
 	private void firstVersion(Canvas canvas) {
 		canvas.drawRect(x - 2, y - 2, x + size + 2, y + size + 2, frame);
 		canvas.drawRect(x, y, x + size, y + size, paint);
+
+		if (ultimo) {
+			int gap = 2 * size / 3;
+			canvas.drawRect(x + gap, y + gap, x + size - gap, y + size - gap,
+					frame);
+		} else if (penultimo) {
+			int gap = 2 * size / 5;
+			canvas.drawRect(x + gap, y + gap, x + size - gap, y + size - gap,
+					frame);
+		}
+
 	}
 
 	private void drawBitmaps(Canvas canvas) {
 		Rect dst = new Rect(x, y, x + size, y + size);
+
 		if (isNormal()) {
 			if (isEmpty()) {
 				paint.setAlpha(80);
@@ -177,6 +196,7 @@ public class ComplementarySquare {
 						null);
 			}
 		}
+
 		if (isIceBlock()) {
 			if (currentState == ICE_BLOCK) {
 				canvas.drawBitmap(iceBlock, null, dst, null);
@@ -185,6 +205,32 @@ public class ComplementarySquare {
 				canvas.drawBitmap(iceBlockBroken, null, dst, null);
 			}
 
+		}
+
+		if (isStar) {
+			if (hasTakenStar) {
+				paint.setAlpha(180);
+
+				canvas.drawBitmap(fullStar, null, dst, paint);
+			} else {
+				paint.setAlpha(100);
+				canvas.drawBitmap(emptyStar, null, dst, paint);
+			}
+		}
+
+		if (ultimo) {
+			paint.setAlpha(130);
+
+			int gap = size / 3;
+			dst = new Rect(x + gap, y + gap, x + size - gap, y + size - gap);
+			canvas.drawBitmap(emptySquareMedium, null, dst, paint);
+
+		} else if (penultimo) {
+			paint.setAlpha(130);
+
+			int gap = 2 * size / 5;
+			dst = new Rect(x + gap, y + gap, x + size - gap, y + size - gap);
+			canvas.drawBitmap(emptySquareSmall, null, dst, paint);
 		}
 
 	}
@@ -219,6 +265,14 @@ public class ComplementarySquare {
 		setColor();
 	}
 
+	public void setHasTakenStar(boolean b) {
+		hasTakenStar = b;
+	}
+
+	public boolean hasTakenStar() {
+		return hasTakenStar;
+	}
+
 	public void nextColor() {
 
 		if (isNormal()) {
@@ -233,6 +287,10 @@ public class ComplementarySquare {
 				currentState = ICE_BLOCK_BROKEN;
 			}
 		}
+		if (isStar) {
+			hasTakenStar = true;
+		}
+		counter++;
 		setColor();
 	}
 
@@ -249,6 +307,10 @@ public class ComplementarySquare {
 				currentState = ICE_BLOCK;
 			}
 		}
+		if (isStar && counter == 1) {
+			hasTakenStar = false;
+		}
+		counter--;
 		setColor();
 	}
 
@@ -261,13 +323,14 @@ public class ComplementarySquare {
 	}
 
 	public boolean isNormal() {
-		if(currentState==EMPTY||currentState==COLORED){
-		return true;
+		if (currentState == EMPTY || currentState == COLORED) {
+			return true;
 		}
 		return false;
 	}
+
 	public boolean isIceBlock() {
-		if(currentState==ICE_BLOCK||currentState==ICE_BLOCK_BROKEN){
+		if (currentState == ICE_BLOCK || currentState == ICE_BLOCK_BROKEN) {
 			return true;
 		}
 		return false;

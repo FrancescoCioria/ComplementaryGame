@@ -15,8 +15,7 @@ public class ComplementaryLevelData implements Serializable {
 	public int rows = 1;
 	public int columns = 1;
 	public int squaresType = 0;
-	public int startSquare = 0;
-	public int star = 0;
+	public int star = -1;
 	public int endColor = 0;
 
 }
