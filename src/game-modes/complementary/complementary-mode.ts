@@ -125,7 +125,7 @@ export class ComplementaryMode implements GameMode {
       if (sq.currentState === SquareState.EMPTY || sq.currentState === SquareState.COLORED) {
         if (sq.currentState === this.levelData.endColor) {
           // "Empty" state = draw translucent
-          drawEmptySquare(this.cm, pos.x, pos.y, size);
+          drawEmptySquare(this.cm, pos.x, pos.y, size, this.backgroundColor);
         } else {
           // Colored state
           const colorIndex = sq.currentState;
