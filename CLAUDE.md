@@ -4,11 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ComplementaryGame — an educational game with 4 modes teaching color recognition and memory skills.
-
-**Two codebases in this repo:**
-1. **Legacy Android** (Eclipse ADT, Java) — original 2013 app in root `src/`, `res/`
-2. **Modern Web App** (`color-game/`) — TypeScript + React + Canvas rewrite, deployable to Cloudflare Pages
+ComplementaryGame — an educational game with 4 modes teaching color recognition and memory skills. TypeScript + React + Canvas web app, deployed on Cloudflare Pages.
 
 ## Web App (color-game/)
 
@@ -44,7 +40,7 @@ color-game/src/
 │   ├── game-loop.ts                  # requestAnimationFrame with delta time
 │   ├── input-handler.ts              # Unified touch/mouse → InputEvent
 │   ├── audio-manager.ts              # Web Audio API, 5 sounds
-│   ├── grid-layout.ts                # Grid sizing algorithm (ported from GameView.java)
+│   ├── grid-layout.ts                # Grid sizing algorithm
 │   └── renderer.ts                   # Draw functions: glossy squares, stars, ice, walls
 ├── components/
 │   ├── MenuScreen.tsx                # 4-button main menu
@@ -72,21 +68,7 @@ color-game/src/
 ### Key Conventions
 - All game logic lives in `game-modes/` — each mode implements the `GameMode` interface
 - Colors defined in `types/colors.ts` — 6 game colors, 3 complementary pairs, 27-color palette
-- Level data in `types/levels.ts` — ported from `MainActivity.java`
-- Grid sizing in `engine/grid-layout.ts` — ported from `GameView.initializeSquareSize()`
-- Audio files in `public/assets/audio/` (copied from `res/raw/`)
+- Level data in `types/levels.ts`
+- Grid sizing in `engine/grid-layout.ts`
+- Audio files in `public/assets/audio/`
 - No external game framework (Phaser/PixiJS) — pure Canvas 2D
-
-## Legacy Android App
-
-### Build System
-Eclipse ADT project — no Gradle/Maven/CLI build. Built via Eclipse Android Development Tools.
-
-### Architecture
-`MainActivity` → `GameView` (SurfaceView) → `GameLoopThread` at 45 FPS.
-
-- **MainActivity** (`src/com/testgame/MainActivity.java`): Menu, level init, difficulty
-- **GameView** (`src/com/testgame/GameView.java`): Core rendering + game logic (~2,400 lines)
-- Square classes: `SequenceSquare`, `DiscoverySquare`, `MemorySquare`, `ComplementarySquare`
-- Walls: `VerticalWall`, `HorizontalWall`
-- Data: `ComplementaryLevelData`, `DiscoveryLevelData`
