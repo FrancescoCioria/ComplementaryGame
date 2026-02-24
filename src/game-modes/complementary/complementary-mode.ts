@@ -3,11 +3,10 @@ import { CanvasManager } from '../../engine/canvas-manager';
 import { GameMode, GameModeConfig } from '../game-mode';
 import { calculateGridLayout, getSquarePosition, hitTestGrid, GridLayout } from '../../engine/grid-layout';
 import {
-  drawGlossySquare, drawEmptySquare, drawStar, drawIceBlock,
+  drawNeonTile, drawDarkGlassTile, drawStar, drawIceBlock,
   drawVerticalWall, drawHorizontalWall, drawSquareIndicator,
 } from '../../engine/renderer';
 import { COMPLEMENTARY_LEVELS, ComplementaryLevelData } from '../../types/levels';
-import { COMPLEMENTARY_PAIRS, GAME_COLORS } from '../../types/colors';
 
 interface CompSquareData {
   currentState: SquareState;
@@ -35,8 +34,6 @@ export class ComplementaryMode implements GameMode {
   private perfectMoves: number = 40;
   private lastWin: number = 0;
   private lastError: number = 0;
-  private colorPair: string[] = [];
-  private backgroundColor: string = GAME_COLORS.YELLOW;
 
   constructor(config: GameModeConfig) {
     this.config = config;
@@ -67,14 +64,6 @@ export class ComplementaryMode implements GameMode {
       GameType.COMPLEMENTARY,
       HUD_HEIGHT,
     );
-
-    // Random color pair
-    const pairIndex = Math.floor(Math.random() * 3);
-    this.colorPair = [...COMPLEMENTARY_PAIRS[pairIndex]];
-
-    // Random order for background
-    const order = Math.floor(Math.random() * 2);
-    this.backgroundColor = this.colorPair[order];
 
     // Init squares
     this.squares = [];
@@ -111,8 +100,7 @@ export class ComplementaryMode implements GameMode {
   }
 
   render() {
-    this.cm.clear(this.backgroundColor);
-    const ctx = this.cm.ctx;
+    this.cm.clear('#1a1f2e');
 
     // Draw squares
     for (let i = 0; i < this.squares.length; i++) {
@@ -124,13 +112,11 @@ export class ComplementaryMode implements GameMode {
 
       if (sq.currentState === SquareState.EMPTY || sq.currentState === SquareState.COLORED) {
         if (sq.currentState === this.levelData.endColor) {
-          // "Empty" state = draw translucent
-          drawEmptySquare(this.cm, pos.x, pos.y, size, this.backgroundColor);
+          // Completed tile — dark glass
+          drawDarkGlassTile(this.cm, pos.x, pos.y, size);
         } else {
-          // Colored state
-          const colorIndex = sq.currentState;
-          const color = this.colorPair[colorIndex] || this.colorPair[0];
-          drawGlossySquare(this.cm, pos.x, pos.y, size, color);
+          // Active tile — neon orange glow
+          drawNeonTile(this.cm, pos.x, pos.y, size);
         }
       } else if (sq.currentState === SquareState.ICE_BLOCK || sq.currentState === SquareState.ICE_BLOCK_BROKEN) {
         drawIceBlock(this.cm, pos.x, pos.y, size, sq.currentState === SquareState.ICE_BLOCK_BROKEN);
@@ -280,8 +266,7 @@ export class ComplementaryMode implements GameMode {
   private nextColor(z: number) {
     const sq = this.squares[z];
     if (sq.currentState === SquareState.EMPTY || sq.currentState === SquareState.COLORED) {
-      const numColors = this.colorPair.length;
-      if (sq.currentState < numColors - 1) {
+      if (sq.currentState < 1) {
         sq.currentState++;
       } else {
         sq.currentState = SquareState.EMPTY;
@@ -301,7 +286,7 @@ export class ComplementaryMode implements GameMode {
       if (sq.currentState > 0) {
         sq.currentState--;
       } else {
-        sq.currentState = (this.colorPair.length - 1) as SquareState;
+        sq.currentState = SquareState.COLORED;
       }
     } else if (sq.currentState === SquareState.ICE_BLOCK_BROKEN) {
       sq.currentState = SquareState.ICE_BLOCK;

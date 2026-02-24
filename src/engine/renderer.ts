@@ -1,6 +1,4 @@
 import { CanvasManager } from './canvas-manager';
-import { GAME_COLORS, COMPLEMENTARY_PAIRS } from '../types/colors';
-import { SquareState } from '../types';
 
 // Helpers
 function roundRect(
@@ -210,7 +208,7 @@ export function drawEmptySquare(
   ctx.restore();
 }
 
-// Draw star
+// Draw 4-pointed sparkle star (orange accent)
 export function drawStar(
   cm: CanvasManager,
   x: number,
@@ -224,15 +222,14 @@ export function drawStar(
   const cx = x + size / 2;
   const cy = y + size / 2;
   const outerR = size * 0.35;
-  const innerR = size * 0.15;
-  const spikes = 5;
+  const innerR = size * 0.1;
 
-  // Star path helper
-  function starPath() {
+  // 4-pointed sparkle path
+  function sparklePath() {
     ctx.beginPath();
-    for (let i = 0; i < spikes * 2; i++) {
+    for (let i = 0; i < 8; i++) {
       const r = i % 2 === 0 ? outerR : innerR;
-      const angle = (Math.PI * i) / spikes - Math.PI / 2;
+      const angle = (Math.PI * i) / 4 - Math.PI / 2;
       const sx = cx + Math.cos(angle) * r;
       const sy = cy + Math.sin(angle) * r;
       if (i === 0) ctx.moveTo(sx, sy);
@@ -242,14 +239,14 @@ export function drawStar(
   }
 
   if (filled) {
-    // Glow
-    ctx.shadowColor = 'rgba(255, 215, 0, 0.6)';
-    ctx.shadowBlur = size * 0.2;
-    starPath();
-    const starGrad = ctx.createRadialGradient(cx, cy - outerR * 0.3, 0, cx, cy, outerR);
-    starGrad.addColorStop(0, '#FFF7A0');
-    starGrad.addColorStop(0.5, '#FFD700');
-    starGrad.addColorStop(1, '#E5A800');
+    // Bright orange glow
+    ctx.shadowColor = 'rgba(255, 140, 0, 0.8)';
+    ctx.shadowBlur = size * 0.25;
+    sparklePath();
+    const starGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, outerR);
+    starGrad.addColorStop(0, '#FFD080');
+    starGrad.addColorStop(0.5, '#FF8C00');
+    starGrad.addColorStop(1, '#CC6600');
     ctx.fillStyle = starGrad;
     ctx.fill();
 
@@ -257,28 +254,18 @@ export function drawStar(
     ctx.shadowBlur = 0;
 
     // Outline
-    starPath();
-    ctx.strokeStyle = '#CC8800';
+    sparklePath();
+    ctx.strokeStyle = '#CC6600';
     ctx.lineWidth = 1.5;
     ctx.stroke();
-
-    // Inner shine
-    ctx.globalAlpha = 0.4;
-    starPath();
-    ctx.clip();
-    const shineGrad = ctx.createLinearGradient(cx, cy - outerR, cx, cy);
-    shineGrad.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
-    shineGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-    ctx.fillStyle = shineGrad;
-    ctx.fillRect(x, y, size, size);
   } else {
-    // Unfilled: ghost star
-    ctx.globalAlpha = 0.25;
-    starPath();
-    ctx.fillStyle = '#888888';
+    // Uncollected: subtle orange ghost
+    ctx.globalAlpha = 0.4;
+    sparklePath();
+    ctx.fillStyle = '#FF8C00';
     ctx.fill();
-    starPath();
-    ctx.strokeStyle = '#666666';
+    sparklePath();
+    ctx.strokeStyle = '#CC6600';
     ctx.lineWidth = 1;
     ctx.stroke();
   }
@@ -409,9 +396,9 @@ export function drawVerticalWall(
 
   roundRect(ctx, wx, wy, wallWidth, wh, r);
   const wallGrad = ctx.createLinearGradient(wx, wy, wx + wallWidth, wy);
-  wallGrad.addColorStop(0, '#555555');
-  wallGrad.addColorStop(0.4, '#3a3a3a');
-  wallGrad.addColorStop(1, '#222222');
+  wallGrad.addColorStop(0, '#6a7080');
+  wallGrad.addColorStop(0.4, '#4a5060');
+  wallGrad.addColorStop(1, '#3a4050');
   ctx.fillStyle = wallGrad;
   ctx.fill();
 
@@ -443,12 +430,99 @@ export function drawHorizontalWall(
 
   roundRect(ctx, wx, wy, ww, wallHeight, r);
   const wallGrad = ctx.createLinearGradient(wx, wy, wx, wy + wallHeight);
-  wallGrad.addColorStop(0, '#555555');
-  wallGrad.addColorStop(0.4, '#3a3a3a');
-  wallGrad.addColorStop(1, '#222222');
+  wallGrad.addColorStop(0, '#6a7080');
+  wallGrad.addColorStop(0.4, '#4a5060');
+  wallGrad.addColorStop(1, '#3a4050');
   ctx.fillStyle = wallGrad;
   ctx.fill();
 
+  ctx.restore();
+}
+
+// Draw neon-glow tile (active/needs-toggling tile for Complementary dark theme)
+export function drawNeonTile(
+  cm: CanvasManager,
+  x: number,
+  y: number,
+  size: number,
+) {
+  const ctx = cm.ctx;
+  ctx.save();
+
+  const radius = size * 0.12;
+
+  // Orange neon glow
+  ctx.shadowColor = '#FF8C00';
+  ctx.shadowBlur = 15;
+
+  // Dark fill
+  roundRect(ctx, x, y, size, size, radius);
+  ctx.fillStyle = '#2a3040';
+  ctx.fill();
+
+  // Reset shadow
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+
+  // Inner dark glass gradient
+  roundRect(ctx, x, y, size, size, radius);
+  ctx.clip();
+  const innerGrad = ctx.createLinearGradient(x, y, x, y + size);
+  innerGrad.addColorStop(0, 'rgba(255, 255, 255, 0.06)');
+  innerGrad.addColorStop(0.4, 'rgba(0, 0, 0, 0)');
+  innerGrad.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
+  ctx.fillStyle = innerGrad;
+  ctx.fillRect(x, y, size, size);
+
+  ctx.restore();
+
+  // Bright orange border
+  ctx.save();
+  roundRect(ctx, x + 1, y + 1, size - 2, size - 2, radius);
+  ctx.strokeStyle = '#FF8C00';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Draw dark glass tile (completed/target-state tile for Complementary dark theme)
+export function drawDarkGlassTile(
+  cm: CanvasManager,
+  x: number,
+  y: number,
+  size: number,
+) {
+  const ctx = cm.ctx;
+  ctx.save();
+
+  const radius = size * 0.12;
+
+  // Dark fill, slightly lighter than background
+  roundRect(ctx, x, y, size, size, radius);
+  ctx.fillStyle = '#252d3d';
+  ctx.fill();
+
+  // Diagonal glossy shine (45-degree stripe across top portion)
+  roundRect(ctx, x, y, size, size, radius);
+  ctx.clip();
+  ctx.globalAlpha = 0.08;
+  ctx.beginPath();
+  ctx.moveTo(x + size * 0.1, y);
+  ctx.lineTo(x + size * 0.45, y);
+  ctx.lineTo(x, y + size * 0.45);
+  ctx.lineTo(x, y + size * 0.1);
+  ctx.closePath();
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+
+  ctx.restore();
+
+  // Thin subtle border
+  ctx.save();
+  roundRect(ctx, x + 0.5, y + 0.5, size - 1, size - 1, radius);
+  ctx.strokeStyle = '#3a4555';
+  ctx.lineWidth = 1;
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -468,15 +542,15 @@ export function drawSquareIndicator(
   const iSize = size - inset * 2;
   const iRadius = radius * 0.6;
 
-  // Pulsing white rounded rect
-  ctx.globalAlpha = type === 'ultimo' ? 0.45 : 0.25;
+  // Pulsing orange rounded rect
+  ctx.globalAlpha = type === 'ultimo' ? 0.5 : 0.28;
   roundRect(ctx, x + inset, y + inset, iSize, iSize, iRadius);
   const grad = ctx.createRadialGradient(
     x + size / 2, y + size / 2, 0,
     x + size / 2, y + size / 2, iSize * 0.7,
   );
-  grad.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-  grad.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+  grad.addColorStop(0, 'rgba(255, 140, 0, 0.9)');
+  grad.addColorStop(1, 'rgba(255, 140, 0, 0.1)');
   ctx.fillStyle = grad;
   ctx.fill();
 
@@ -520,11 +594,3 @@ export function drawButton(
   drawText(cm, text, x + width / 2, y + height / 2, textColor, 14, 'center');
 }
 
-// Get complementary colors array for a type
-export function getComplementaryColors(type: number): string[] {
-  if (type < COMPLEMENTARY_PAIRS.length) {
-    return [...COMPLEMENTARY_PAIRS[type]];
-  }
-  // Triple colors (types 3-5) — all use yellow/orange/red
-  return [GAME_COLORS.YELLOW, GAME_COLORS.ORANGE, GAME_COLORS.RED];
-}

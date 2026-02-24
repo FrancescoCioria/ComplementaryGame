@@ -9,7 +9,7 @@ html, body, #root {
   height: 100%;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #1a1a2e;
+  background: #1a1f2e;
   color: #eee;
   touch-action: none;
   -webkit-touch-callout: none;
@@ -88,7 +88,7 @@ html, body, #root {
 .menu-btn-complementary {
   background: linear-gradient(135deg, #FFD700, #f39c12);
   box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
-  color: #1a1a2e;
+  color: #1a1f2e;
 }
 
 /* Dialog */
@@ -146,7 +146,7 @@ html, body, #root {
   font-weight: 600;
   border: 2px solid #334;
   border-radius: 10px;
-  background: #1a1a2e;
+  background: #1a1f2e;
   color: #eee;
   cursor: pointer;
   flex: 1;
@@ -158,7 +158,7 @@ html, body, #root {
 
 .dialog-btn-primary {
   background: #4ECDC4;
-  color: #1a1a2e;
+  color: #1a1f2e;
   border-color: #4ECDC4;
 }
 
@@ -220,7 +220,8 @@ html, body, #root {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: #0f0f23;
+  background: #0f1420;
+  border-top: 1px solid rgba(255, 140, 0, 0.25);
   min-height: 48px;
   z-index: 10;
 }
@@ -237,19 +238,19 @@ html, body, #root {
   padding: 6px 14px;
   font-size: 0.85rem;
   font-weight: 600;
-  border: 1px solid #334;
+  border: 1px solid rgba(255, 140, 0, 0.4);
   border-radius: 6px;
-  background: #1a1a2e;
-  color: #eee;
+  background: #1a1f2e;
+  color: #FF8C00;
   cursor: pointer;
 }
 
 .hud-btn:active {
-  background: #334;
+  background: #2a3040;
 }
 
 .hud-info {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #aaa;
+  color: #e0a050;
 }
