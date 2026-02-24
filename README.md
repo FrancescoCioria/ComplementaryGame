@@ -16,7 +16,6 @@ Built with TypeScript, React 19, HTML5 Canvas, and deployed on Cloudflare Pages.
 ## Development
 
 ```bash
-cd color-game
 npm install
 npm run dev      # Vite dev server
 npm run build    # Production build

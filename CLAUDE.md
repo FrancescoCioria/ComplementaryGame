@@ -6,8 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ComplementaryGame — an educational game with 4 modes teaching color recognition and memory skills. TypeScript + React + Canvas web app, deployed on Cloudflare Pages.
 
-## Web App (color-game/)
-
 ### Tech Stack
 - **Vite** + **React 19** + **TypeScript**
 - **HTML5 Canvas** for gameplay rendering (inside React component)
@@ -16,7 +14,6 @@ ComplementaryGame — an educational game with 4 modes teaching color recognitio
 
 ### Build & Dev Commands
 ```bash
-cd color-game
 npm run dev          # Vite dev server
 npm run build        # Production build (tsc + vite build)
 npm run preview      # Preview production build locally
@@ -28,7 +25,7 @@ npm run deploy       # Build + deploy to Cloudflare Pages
 **React layer** handles menu, dialogs, HUD overlay. **Canvas** handles all in-game rendering.
 
 ```
-color-game/src/
+src/
 ├── main.tsx                          # Entry point
 ├── App.tsx                           # Router: menu ↔ difficulty ↔ game
 ├── types/
