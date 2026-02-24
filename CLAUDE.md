@@ -4,7 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ComplementaryGame — an educational game with 4 modes teaching color recognition and memory skills. TypeScript + React + Canvas web app, deployed on Cloudflare Pages.
+ComplementaryGame — a color-based puzzle game. TypeScript + React + Canvas web app, deployed on Cloudflare Pages.
+
+### Core Gameplay (Complementary mode)
+- Grid of colored tiles, each in state A or state B (represented by complementary color pairs)
+- Player starts from any tile and moves to adjacent tiles (up/down/left/right)
+- Touching a tile toggles it from state A → B or B → A
+- **Goal**: get all tiles to state A (100% target color)
+- **Scoring**: fewer moves = better score; collecting a star on the grid gives a bonus
+- Levels have predefined layouts with walls (block movement) and ice tiles
 
 ### Tech Stack
 - **Vite** + **React 19** + **TypeScript**
@@ -60,7 +68,7 @@ src/
 | **Sequence** | Repeat growing color sequences (Simon Says) | Beginner 2×3, Normal 4×6, Hard 6×9, Custom |
 | **Discovery** | Find target squares among decoys, 20 lives | 22 levels: 3×3 → 5×7 |
 | **Memory** | Match card pairs, 3-stage progression | 2×3 → 4×6 → 6×9 auto |
-| **Complementary** | Drag path to cycle complementary colors to target | 13 predefined levels with walls, ice, stars |
+| **Complementary** | Toggle tiles to target color by traversing adjacent tiles; minimize moves, collect stars for bonus | 13 predefined levels with walls, ice, stars |
 
 ### Key Conventions
 - All game logic lives in `game-modes/` — each mode implements the `GameMode` interface
